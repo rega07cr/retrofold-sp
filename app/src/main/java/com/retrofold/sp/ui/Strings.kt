@@ -57,9 +57,7 @@ data class S(
     val hideStyles: String,
     val showStyles: String,
     val hideThis: String,
-    val showAll: String,
-    val slot: String,
-    val reset: String
+    val showAll: String
 ) {
     companion object {
         val it = S(
@@ -108,9 +106,7 @@ data class S(
             hideStyles = "Nascondi striscia stili",
             showStyles = "Mostra striscia stili",
             hideThis = "Nascondi",
-            showAll = "↺ Mostra tutti gli stili",
-            slot = "Slot",
-            reset = "Reset"
+            showAll = "↺ Mostra tutti gli stili"
         )
         val en = S(
             splashLoading = "LOADING…",
@@ -158,9 +154,7 @@ data class S(
             hideStyles = "Hide style strip",
             showStyles = "Show style strip",
             hideThis = "Hide",
-            showAll = "↺ Show all styles",
-            slot = "Slot",
-            reset = "Reset"
+            showAll = "↺ Show all styles"
         )
 
         fun of(lang: AppLang): S = when (lang) {

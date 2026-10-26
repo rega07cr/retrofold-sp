@@ -38,7 +38,6 @@ import com.retrofold.sp.core.EmulatorEngine
 import com.retrofold.sp.core.RomEntry
 import com.retrofold.sp.dataStore
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -64,6 +63,7 @@ fun FlexSpScreen(
     s: S = S.it
 ) {
     val ctx = LocalContext.current
+    val app = ctx.applicationContext as android.app.Application
     val scope = rememberCoroutineScope()
     var showMacro by remember { mutableStateOf(false) }
     var speedLabel by remember { mutableIntStateOf(engine.fastForward) }
@@ -83,7 +83,7 @@ fun FlexSpScreen(
 
     LaunchedEffect(Unit) {
         try {
-            val p = ctx.dataStore.data.first()
+            val p = app.dataStore.data.first()
             opacity = (p[RetroFoldApp.PAD_OPACITY] ?: 0.55f).coerceIn(0.25f, 1f)
             dpadOff = Offset(p[RetroFoldApp.PAD_DPAD_X] ?: 0f, p[RetroFoldApp.PAD_DPAD_Y] ?: 0f)
             abOff = Offset(p[RetroFoldApp.PAD_AB_X] ?: 0f, p[RetroFoldApp.PAD_AB_Y] ?: 0f)
@@ -97,7 +97,7 @@ fun FlexSpScreen(
         if (!loaded) return
         scope.launch {
             try {
-                ctx.dataStore.edit {
+                app.dataStore.edit {
                     it[RetroFoldApp.PAD_OPACITY] = opacity
                     it[RetroFoldApp.PAD_DPAD_X] = dpadOff.x
                     it[RetroFoldApp.PAD_DPAD_Y] = dpadOff.y

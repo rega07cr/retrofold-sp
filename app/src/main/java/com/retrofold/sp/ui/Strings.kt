@@ -29,6 +29,7 @@ data class S(
     val errInvalid: String,
     val errRead: String,
     val errZipEmpty: String,
+    val errStart: String,
     val ok: String,
     val save: String,
     val load: String,
@@ -62,6 +63,7 @@ data class S(
             errInvalid = "File non valido: non sembra una ROM Game Boy vera.",
             errRead = "Impossibile leggere il file. Riprova.",
             errZipEmpty = "Lo ZIP non contiene nessuna ROM (.gba / .gb / .gbc).",
+            errStart = "Impossibile avviare il gioco su questo telefono. Riprova o cambia ROM.",
             ok = "OK",
             save = "Salva",
             load = "Carica",
@@ -94,6 +96,7 @@ data class S(
             errInvalid = "Invalid file: it doesn't look like a real Game Boy ROM.",
             errRead = "Can't read the file. Try again.",
             errZipEmpty = "The ZIP contains no ROM (.gba / .gb / .gbc).",
+            errStart = "Can't start the game on this phone. Try again or pick another ROM.",
             ok = "OK",
             save = "Save",
             load = "Load",
@@ -118,6 +121,7 @@ data class S(
             "ERR_UNSUPPORTED" -> s.errUnsupported
             "ERR_INVALID" -> s.errInvalid
             "ERR_ZIP_EMPTY" -> s.errZipEmpty
+            "ERR_START" -> s.errStart
             else -> s.errRead
         }
     }

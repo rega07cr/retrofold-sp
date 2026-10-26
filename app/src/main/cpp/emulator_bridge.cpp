@@ -258,8 +258,11 @@ Java_com_retrofold_sp_core_EmulatorEngine_nativeLoadRom(
                 if (rom) {
                     if (core->loadROM(core, rom)) {
                         g.romVf = rom; // resta aperto per la sessione
-                        VFile* save = VFileOpen(
-                            batteryPath, O_RDWR | O_CREAT);
+                        // Tocca il file prima: VFileOpen non crea file mancanti
+                        // in modo affidabile su tutte le piattaforme.
+                        FILE* touch = fopen(batteryPath, "ab");
+                        if (touch) fclose(touch);
+                        VFile* save = VFileOpen(batteryPath, O_RDWR);
                         if (save) {
                             // Carica il battery save solo se non vuoto
                             if (save->size(save) > 0) core->loadSave(core, save);
@@ -351,17 +354,18 @@ Java_com_retrofold_sp_core_EmulatorEngine_nativeReset(JNIEnv*, jobject) {
 
 JNIEXPORT void JNICALL
 Java_com_retrofold_sp_core_EmulatorEngine_nativePress(JNIEnv*, jobject, jint mask) {
+    // SOLO flag atomico: addKeys/clearKeys chiamano GBATestKeypadIRQ che tocca
+    // lo stato GBA e NON è thread-safe — chiamarlo dal thread UI mentre
+    // runFrame gira è crash quasi certo. Il loop emu applica setKeys ogni frame.
     uint32_t k = g.keys.load(std::memory_order_relaxed);
     g.keys.store(k | (uint32_t)mask, std::memory_order_relaxed);
-    // Applica subito se possibile (il loop lo rilegge comunque ogni frame)
-    if (g.core && !g.paused.load()) g.core->addKeys(g.core, (uint32_t)mask);
 }
 
 JNIEXPORT void JNICALL
 Java_com_retrofold_sp_core_EmulatorEngine_nativeRelease(JNIEnv*, jobject, jint mask) {
+    // Come sopra: mai toccare il core fuori dal loop emu.
     uint32_t k = g.keys.load(std::memory_order_relaxed);
     g.keys.store(k & ~(uint32_t)mask, std::memory_order_relaxed);
-    if (g.core && !g.paused.load()) g.core->clearKeys(g.core, (uint32_t)mask);
 }
 
 static VFile* openStateFile(const char* path, bool write) {

@@ -55,6 +55,8 @@ class MainActivity : ComponentActivity() {
     private var lang by mutableStateOf<AppLang?>(null)
     /** Gioco in fase di boot-animazione (rainbow). Null = mostra l'emulatore. */
     private var bootRom by mutableStateOf<RomEntry?>(null)
+    /** Vero mentre il core gira: serve a onPause/onResume e allo snackbar errori. */
+    private var playing by mutableStateOf(false)
 
     // Tasti fisici del volume come pulsanti d'azione in Cover Mode.
     // BUGFIX documentato: prima erano solo scritti nei testi ma mai intercettati.
@@ -80,6 +82,22 @@ class MainActivity : ComponentActivity() {
         KeyEvent.KEYCODE_VOLUME_UP -> EmulatorEngine.Keys.A
         KeyEvent.KEYCODE_VOLUME_DOWN -> EmulatorEngine.Keys.B
         else -> null
+    }
+
+    // Non lasciare il core a girare in background: pausa all'uscita,
+    // riprendi al ritorno solo se stava giocando davvero.
+    override fun onPause() {
+        super.onPause()
+        if (playing) {
+            try { engine.nativePause() } catch (_: Throwable) {}
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (playing && currentRom != null && bootRom == null) {
+            try { engine.nativeResume() } catch (_: Throwable) {}
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -152,11 +170,13 @@ class MainActivity : ComponentActivity() {
                     if (br != null) {
                         // Animazione rainbow all'avvio di ogni gioco;
                         // alla fine carica davvero la ROM nel core mGBA e parte.
+                        // Se il core rifiuta la ROM, errore chiaro invece di schermo nero.
                         GameBootScreen(romTitle = br.title, s = s) {
                             if (bootRom?.id == br.id) {
                                 bootRom = null
                                 lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                                     val r = currentRom
+                                    var started = false
                                     if (r != null && r.id == br.id) {
                                         try {
                                             val platform =
@@ -170,8 +190,16 @@ class MainActivity : ComponentActivity() {
                                                 EmulatorEngine.nativeAvailable = true
                                                 engine.nativeStart()
                                                 engine.nativeResume()
+                                                started = true
                                             }
                                         } catch (_: Throwable) {}
+                                    }
+                                    if (started) {
+                                        playing = true
+                                    } else {
+                                        playing = false
+                                        currentRom = null
+                                        scope.launch { snackbar.showSnackbar(s.errStart, actionLabel = s.ok) }
                                     }
                                 }
                             }
@@ -212,7 +240,7 @@ class MainActivity : ComponentActivity() {
                                 engine.fastForward = if (engine.fastForward == 1) 2 else 1
                                 try { engine.nativeSetFastForward(engine.fastForward) } catch (_: Throwable) {}
                             },
-                            onBack = { engine.pause(); currentRom = null; bootRom = null },
+                            onBack = { engine.pause(); playing = false; currentRom = null; bootRom = null },
                             onSave = { slot -> saveSlot(slot) },
                             onLoad = { slot -> loadSlot(slot) },
                             s = s
@@ -222,7 +250,7 @@ class MainActivity : ComponentActivity() {
                         CoverPocketScreen(
                             rom = currentRom,
                             profile = profile,
-                            onBack = { engine.pause(); currentRom = null; bootRom = null },
+                            onBack = { engine.pause(); playing = false; currentRom = null; bootRom = null },
                             onOpenFlexHint = {},
                             s = s
                         )

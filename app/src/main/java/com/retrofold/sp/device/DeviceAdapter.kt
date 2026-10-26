@@ -52,9 +52,4 @@ object DeviceAdapter {
             feature.orientation == FoldingFeature.Orientation.HORIZONTAL
     }
 
-    /** true se completamente chiuso = usa cover display */
-    fun isClosed(feature: FoldingFeature?): Boolean {
-        // Su molti Flip la cover non riporta FoldingFeature: si usa anche screen off / smallest width.
-        return feature != null && feature.state == FoldingFeature.State.FLAT && feature.isSeparating.not()
-    }
 }

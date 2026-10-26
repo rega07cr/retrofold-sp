@@ -39,7 +39,9 @@ data class S(
     val tapJump: String,
     val library: String,
     val openFlex: String,
-    val coverWarn: String
+    val coverWarn: String,
+    val noRom: String,
+    val langName: String
 ) {
     companion object {
         val it = S(
@@ -70,7 +72,9 @@ data class S(
             tapJump = "▶ TOCCA = SALTO (+100)",
             library = "📚 Giochi",
             openFlex = "Apri a 90° → Game Boy",
-            coverWarn = "Su questo modello la cover usa cover-launcher/Good Lock: segui il wizard al primo avvio."
+            coverWarn = "Su questo modello la cover usa cover-launcher/Good Lock: segui il wizard al primo avvio.",
+            noRom = "Nessuna ROM",
+            langName = "🌍 Lingua"
         )
         val en = S(
             splashLoading = "LOADING…",
@@ -100,7 +104,9 @@ data class S(
             tapJump = "▶ TAP = JUMP (+100)",
             library = "📚 Games",
             openFlex = "Open to 90° → Game Boy",
-            coverWarn = "On this model the cover needs a cover-launcher/Good Lock: follow the wizard on first launch."
+            coverWarn = "On this model the cover needs a cover-launcher/Good Lock: follow the wizard on first launch.",
+            noRom = "No ROM",
+            langName = "🌍 Language"
         )
 
         fun of(lang: AppLang): S = when (lang) {

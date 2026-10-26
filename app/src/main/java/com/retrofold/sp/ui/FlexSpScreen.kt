@@ -2,8 +2,10 @@ package com.retrofold.sp.ui
 
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,9 +49,13 @@ fun FlexSpScreen(
     onBack: () -> Unit,
     onSave: (Int) -> Unit,
     onLoad: (Int) -> Unit,
+    onToggleSpeed: () -> Unit = {},
     s: S = S.it
 ) {
     var showMacro by remember { mutableStateOf(false) }
+    // Copia locale osservabile: engine.fastForward è un campo semplice,
+    // leggerlo qui dentro non ricomporrebbe la label ⏩ dopo il toggle.
+    var speedLabel by remember { mutableIntStateOf(engine.fastForward) }
 
     Column(Modifier.fillMaxSize().background(Color.Black)) {
         // ── SCHERMO SUPERIORE ──
@@ -75,10 +81,18 @@ fun FlexSpScreen(
                     Text("POWER ON", color = Color(0xFF9FD8FF), style = MaterialTheme.typography.labelSmall)
                     Text("BATTERY FULL", color = Color(0xFF9FD8FF), style = MaterialTheme.typography.labelSmall)
                 }
-                // Superficie emulatori: il core NDK disegna qui a 240x160 scalato GPU
-                AndroidView(
-                    factory = { ctx ->
-                        SurfaceView(ctx).apply {
+                // Superficie emulatori: il core NDK disegna qui a 240x160 scalato GPU.
+                // La Box sovrappone lo shader AGS-101 (scanline reali) sopra il gioco.
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(3f / 2f)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(skin.screenTint)
+                ) {
+                    AndroidView(
+                        factory = { ctx ->
+                            SurfaceView(ctx).apply {
                             // BUGFIX: la surface non è pronta nel factory — aspetta il callback,
                             // altrimenti il core disegna sul nulla (schermo nero).
                             holder.addCallback(object : SurfaceHolder.Callback {
@@ -90,23 +104,25 @@ fun FlexSpScreen(
                                     try { engine.nativeSetSurface(null) } catch (_: Throwable) {}
                                 }
                             })
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(3f / 2f)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(skin.screenTint)
-                )
-                if (ags101) {
-                    // Overlay shader AGS-101: grille micro-pixel + scanline (GPU reale nel .so,
-                    // qui anteprima Compose leggera)
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(3f / 2f)
-                            .offset(y = 0.dp)
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize()
                     )
+                    if (ags101) {
+                        // AGS-101: scanline orizzontali + velo verde sullo schermo di gioco.
+                        Canvas(Modifier.fillMaxSize()) {
+                            var y = 0f
+                            while (y < size.height) {
+                                drawLine(
+                                    Color.Black.copy(alpha = 0.22f),
+                                    Offset(0f, y),
+                                    Offset(size.width, y),
+                                    strokeWidth = 1f
+                                )
+                                y += 4f
+                            }
+                        }
+                    }
                 }
                 Text(
                     "${skin.screenText} • ${rom.title} ${if (ags101) "• AGS-101 ON" else ""}",
@@ -228,15 +244,21 @@ fun FlexSpScreen(
                     }
                 }
                 if (showMacro) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    // FlowRow: su schermi stretti va a capo invece di uscire dallo schermo.
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Button(onClick = { onSave(0) }) { Text("💾 ${s.save}") }
                         Button(onClick = { onLoad(0) }) { Text("📂 ${s.load}") }
                         Button(onClick = {
                             try { engine.nativeRewind(10) } catch (_: Throwable) {}
                         }) { Text("⏪ 10s") }
-                        Button(onClick = {
-                            try { engine.nativeSetFastForward(if (engine.fastForward == 1) 2 else 1) } catch (_: Throwable) {}
-                        }) { Text("⏩") }
+                        Button(onClick = { onToggleSpeed(); speedLabel = engine.fastForward }) {
+                            Text(if (speedLabel == 1) "⏩ 1x" else "⏩ ${speedLabel}x")
+                        }
                     }
                 }
                 // Skin picker

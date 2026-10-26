@@ -54,7 +54,7 @@ fun CoverPocketScreen(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("👾 POCKET ARCADE", color = Color(0xFFFFD34D))
                 Text(
-                    rom?.title ?: "Nessuna ROM",
+                    rom?.title ?: s.noRom,
                     color = Color.White, style = MaterialTheme.typography.titleMedium
                 )
                 Spacer(Modifier.height(8.dp))

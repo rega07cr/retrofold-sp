@@ -166,9 +166,12 @@ object RomManager {
             ?.filter { it.isFile && detectSystem(it.name) != RomSystem.UNKNOWN }
             ?.map {
                 val sha = it.nameWithoutExtension
+                val pretty = it.nameWithoutExtension
+                    .replace('_', ' ').replace('-', ' ').replace('.', ' ')
+                    .trim().take(40).ifEmpty { "Gioco" }
                 RomEntry(
                     id = sha,
-                    title = sha.take(8).uppercase() + " • " + it.name,
+                    title = pretty,
                     system = detectSystem(it.name),
                     sizeBytes = it.length(),
                     internalPath = it.absolutePath,

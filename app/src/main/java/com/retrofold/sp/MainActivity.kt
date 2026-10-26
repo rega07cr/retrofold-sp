@@ -139,7 +139,7 @@ class MainActivity : ComponentActivity() {
                 ) { uri: Uri? ->
                     if (uri != null) importUri(uri, s,
                         onError = { msg ->
-                            scope.launch { snackbar.showSnackbar(msg) }
+                            scope.launch { snackbar.showSnackbar(msg, actionLabel = s.ok) }
                         })
                 }
 
@@ -157,10 +157,19 @@ class MainActivity : ComponentActivity() {
                     } else if (currentRom == null) {
                         LibraryScreen(
                             s = s,
+                            lang = l,
                             roms = roms,
                             deviceLabel = "${profile.deviceLabel} • ${Build.MANUFACTURER} ${Build.MODEL}",
                             onAdd = { pickRom.launch(arrayOf("*/*")) },
-                            onPlay = { currentRom = it; bootRom = it }
+                            onPlay = { currentRom = it; bootRom = it },
+                            onLang = { picked ->
+                                lang = picked
+                                lifecycleScope.launch {
+                                    application.dataStore.edit {
+                                        it[RetroFoldApp.LANG_KEY] = picked.code
+                                    }
+                                }
+                            }
                         )
                     } else if (isFlex) {
                         // MODALITA' FLEX a L: GBA SP Reborn (schermo sopra + gamepad sotto)
@@ -174,6 +183,12 @@ class MainActivity : ComponentActivity() {
                             onToggleFilter = {
                                 ags101 = !ags101
                                 try { engine.nativeSetFilterAGS101(ags101) } catch (_: Throwable) {}
+                            },
+                            onToggleSpeed = {
+                                // BUGFIX: prima il campo non veniva aggiornato e il toggle
+                                // chiamava sempre nativeSetFastForward(2).
+                                engine.fastForward = if (engine.fastForward == 1) 2 else 1
+                                try { engine.nativeSetFastForward(engine.fastForward) } catch (_: Throwable) {}
                             },
                             onBack = { currentRom = null; bootRom = null },
                             onSave = { slot -> saveSlot(slot) },
@@ -191,9 +206,10 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     FlipPetOverlay(flexOpen = isFlex)
+                    // Staccata dal bordo: prima si sovrapponeva al FlipPet.
                     SnackbarHost(
                         hostState = snackbar,
-                        modifier = Modifier.align(Alignment.BottomCenter)
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 64.dp)
                     )
                 }
             }
@@ -239,94 +255,111 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun LibraryScreen(
     s: S,
+    lang: AppLang,
     roms: List<RomEntry>,
     deviceLabel: String,
     onAdd: () -> Unit,
-    onPlay: (RomEntry) -> Unit
+    onPlay: (RomEntry) -> Unit,
+    onLang: (AppLang) -> Unit
 ) {
-    Column(
+    // Un'unica LazyColumn: su schermi piccoli scorre tutto invece di sforare.
+    LazyColumn(
         Modifier.fillMaxSize().padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            "🎮 RetroFold SP",
-            fontFamily = PixelFont,
-            fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.headlineMedium
-        )
-        Text(
-            deviceLabel,
-            fontFamily = PixelFont,
-            style = MaterialTheme.typography.bodySmall,
-            color = Color(0xFF9AA0AA)
-        )
-        Spacer(Modifier.height(12.dp))
-        PixelCard(Modifier.fillMaxWidth()) {
+        item {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "🎮 RetroFold SP",
+                    fontFamily = PixelFont,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineMedium
+                )
+                // La lingua promessa ("cambiala quando vuoi") ora esiste davvero.
+                TextButton(onClick = {
+                    onLang(if (lang == AppLang.IT) AppLang.EN else AppLang.IT)
+                }) { Text(s.langName, fontFamily = PixelFont) }
+            }
             Text(
-                s.libHow,
+                deviceLabel,
                 fontFamily = PixelFont,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFFFFD34D)
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF9AA0AA)
             )
-            Spacer(Modifier.height(6.dp))
-            Text(s.step1, fontFamily = PixelFont, style = MaterialTheme.typography.bodyMedium)
-            Text(s.step2, fontFamily = PixelFont, style = MaterialTheme.typography.bodyMedium)
-            Text(s.step3, fontFamily = PixelFont, style = MaterialTheme.typography.bodyMedium)
-        }
-        Spacer(Modifier.height(14.dp))
-        RetroButton(
-            text = s.addRom,
-            onClick = onAdd,
-            modifier = Modifier.fillMaxWidth()
-        )
-        Text(
-            s.addRomHint,
-            fontFamily = PixelFont,
-            style = MaterialTheme.typography.bodySmall,
-            color = Color(0xFF9AA0AA)
-        )
-        Spacer(Modifier.height(12.dp))
-        if (roms.isEmpty()) {
-            Text(
-                s.emptyLib,
-                fontFamily = PixelFont,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.85f)
-            )
-        } else {
-            Text(
-                s.romsTitle,
-                fontFamily = PixelFont,
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleMedium,
+            Spacer(Modifier.height(12.dp))
+            PixelCard(Modifier.fillMaxWidth()) {
+                Text(
+                    s.libHow,
+                    fontFamily = PixelFont,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFFFD34D)
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(s.step1, fontFamily = PixelFont, style = MaterialTheme.typography.bodyMedium)
+                Text(s.step2, fontFamily = PixelFont, style = MaterialTheme.typography.bodyMedium)
+                Text(s.step3, fontFamily = PixelFont, style = MaterialTheme.typography.bodyMedium)
+            }
+            Spacer(Modifier.height(14.dp))
+            RetroButton(
+                text = s.addRom,
+                onClick = onAdd,
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(6.dp))
-            LazyColumn(Modifier.fillMaxWidth()) {
-                items(roms) { rom ->
-                    PixelCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 5.dp)
-                    ) {
-                        Text(
-                            "▶ ${rom.title}",
-                            fontFamily = PixelFont,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            "${rom.system} • ${rom.sizeBytes / 1024} KB",
-                            fontFamily = PixelFont,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF9AA0AA)
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        RetroButton(
-                            text = "▶",
-                            onClick = { onPlay(rom) },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+            Text(
+                s.addRomHint,
+                fontFamily = PixelFont,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF9AA0AA)
+            )
+            Spacer(Modifier.height(12.dp))
+        }
+        if (roms.isEmpty()) {
+            item {
+                Text(
+                    s.emptyLib,
+                    fontFamily = PixelFont,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.85f)
+                )
+            }
+        } else {
+            item {
+                Text(
+                    s.romsTitle,
+                    fontFamily = PixelFont,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(6.dp))
+            }
+            items(roms) { rom ->
+                PixelCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 5.dp)
+                ) {
+                    Text(
+                        "▶ ${rom.title}",
+                        fontFamily = PixelFont,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "${rom.system} • ${rom.sizeBytes / 1024} KB",
+                        fontFamily = PixelFont,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF9AA0AA)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    RetroButton(
+                        text = "▶ ${s.library}",
+                        onClick = { onPlay(rom) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }

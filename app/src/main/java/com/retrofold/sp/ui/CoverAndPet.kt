@@ -26,7 +26,8 @@ fun CoverPocketScreen(
     rom: RomEntry?,
     profile: CoverProfile,
     onBack: () -> Unit,
-    onOpenFlexHint: () -> Unit
+    onOpenFlexHint: () -> Unit,
+    s: S = S.it
 ) {
     var score by remember { mutableIntStateOf(0) }
     // Padding alto = zona camera di ogni marca
@@ -56,25 +57,23 @@ fun CoverPocketScreen(
                     rom?.title ?: "Nessuna ROM",
                     color = Color.White, style = MaterialTheme.typography.titleMedium
                 )
-                Spacer(Modifier.height(8.dp))
-                Text("SCORE $score", color = Color(0xFF7DFF9A))
+                Spacer(Modifier.height(8.dp))                    Text("${s.score} $score", color = Color(0xFF7DFF9A))
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "VOLUME SU = salto • VOLUME GIÙ = sparo\nTap = A • Swipe = D-pad",
+                    s.coverHint,
                     color = Color.Gray, style = MaterialTheme.typography.bodySmall
                 )
-                Spacer(Modifier.height(12.dp))
-                Button(onClick = { score += 100 }) { Text("▶ TAP = SALTO (+100)") }
+                Spacer(Modifier.height(12.dp))                    Button(onClick = { score += 100 }) { Text(s.tapJump) }
             }
         }
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            OutlinedButton(onClick = onBack) { Text("Libreria") }
-            Button(onClick = onOpenFlexHint) { Text("Apri a 90° → GBA SP") }
+            OutlinedButton(onClick = onBack) { Text(s.library) }
+            Button(onClick = onOpenFlexHint) { Text(s.openFlex) }
         }
         if (!profile.fullAppOnCover) {
             Text(
-                "Su ${profile.deviceLabel} la cover richiede cover-launcher/Good Lock: segui il wizard al primo avvio.",
+                "${profile.deviceLabel}: ${s.coverWarn}",
                 color = Color(0xFFFF9D5C), style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.padding(top = 6.dp)
             )

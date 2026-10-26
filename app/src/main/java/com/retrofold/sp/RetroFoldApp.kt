@@ -11,5 +11,6 @@ class RetroFoldApp : Application() {
         val SKIN_KEY = stringPreferencesKey("skin_id")
         val ROM_KEY = stringPreferencesKey("last_rom_id")
         val FILTER_KEY = stringPreferencesKey("ags101")
+        val LANG_KEY = stringPreferencesKey("lang")
     }
 }

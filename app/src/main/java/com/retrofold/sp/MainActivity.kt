@@ -15,17 +15,30 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.lifecycleScope
 import androidx.window.layout.WindowInfoTracker
 import com.retrofold.sp.core.EmulatorEngine
 import com.retrofold.sp.core.RomEntry
 import com.retrofold.sp.core.RomManager
 import com.retrofold.sp.device.DeviceAdapter
-import com.retrofold.sp.ui.FlexSpScreen
-import com.retrofold.sp.ui.Skins
+import com.retrofold.sp.ui.AppLang
+import com.retrofold.sp.ui.BootSplash
 import com.retrofold.sp.ui.CoverPocketScreen
+import com.retrofold.sp.ui.FlexSpScreen
 import com.retrofold.sp.ui.FlipPetOverlay
+import com.retrofold.sp.ui.LanguageScreen
+import com.retrofold.sp.ui.PixelCard
+import com.retrofold.sp.ui.PixelFont
+import com.retrofold.sp.ui.RetroButton
+import com.retrofold.sp.ui.RetroFoldColors
+import com.retrofold.sp.ui.S
+import com.retrofold.sp.ui.Skins
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -36,11 +49,21 @@ class MainActivity : ComponentActivity() {
     private var skinId by mutableStateOf("gold")
     private var ags101 by mutableStateOf(true)
     private var isFlex by mutableStateOf(false)
+    private var booted by mutableStateOf(false)
+    private var lang by mutableStateOf<AppLang?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         refreshRoms()
+
+        // Lingua salvata (null = prima apertura -> schermata scelta)
+        lifecycleScope.launch {
+            val code = application.dataStore.data
+                .map { it[RetroFoldApp.LANG_KEY] }
+                .first()
+            lang = AppLang.fromCode(code)
+        }
 
         // Rileva piega a 90° in tempo reale (universale, tutti i Flip)
         lifecycleScope.launch {
@@ -55,11 +78,39 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            MaterialTheme(colorScheme = darkColorScheme()) {
+            MaterialTheme(colorScheme = RetroFoldColors()) {
+                val snackbar = remember { SnackbarHostState() }
+                val scope = rememberCoroutineScope()
+
+                // 1) Animazione retrò di avvio (Game Boy che si apre)
+                if (!booted) {
+                    BootSplash(s = lang?.let { S.of(it) } ?: S.it) {
+                        booted = true
+                    }
+                    return@MaterialTheme
+                }
+                // 2) Scelta lingua al primo avvio
+                val l = lang
+                if (l == null) {
+                    LanguageScreen(onPick = { picked ->
+                        lang = picked
+                        lifecycleScope.launch {
+                            application.dataStore.edit {
+                                it[RetroFoldApp.LANG_KEY] = picked.code
+                            }
+                        }
+                    })
+                    return@MaterialTheme
+                }
+                val s = S.of(l)
+
                 val pickRom = rememberLauncherForActivityResult(
                     ActivityResultContracts.OpenDocument()
                 ) { uri: Uri? ->
-                    if (uri != null) importUri(uri)
+                    if (uri != null) importUri(uri, s,
+                        onError = { msg ->
+                            scope.launch { snackbar.showSnackbar(msg) }
+                        })
                 }
 
                 val profile = remember {
@@ -69,6 +120,7 @@ class MainActivity : ComponentActivity() {
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                     if (currentRom == null) {
                         LibraryScreen(
+                            s = s,
                             roms = roms,
                             deviceLabel = "${profile.deviceLabel} • ${Build.MANUFACTURER} ${Build.MODEL}",
                             onAdd = { pickRom.launch(arrayOf("*/*")) },
@@ -89,7 +141,8 @@ class MainActivity : ComponentActivity() {
                             },
                             onBack = { currentRom = null },
                             onSave = { slot -> saveSlot(slot) },
-                            onLoad = { slot -> loadSlot(slot) }
+                            onLoad = { slot -> loadSlot(slot) },
+                            s = s
                         )
                     } else {
                         // Telefono aperto piatto o chiuso: cover pocket + pet
@@ -97,10 +150,15 @@ class MainActivity : ComponentActivity() {
                             rom = currentRom,
                             profile = profile,
                             onBack = { currentRom = null },
-                            onOpenFlexHint = {}
+                            onOpenFlexHint = {},
+                            s = s
                         )
                     }
                     FlipPetOverlay(flexOpen = isFlex)
+                    SnackbarHost(
+                        hostState = snackbar,
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                    )
                 }
             }
         }
@@ -112,14 +170,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun importUri(uri: Uri) {
+    private fun importUri(uri: Uri, s: S, onError: (String) -> Unit) {
         lifecycleScope.launch {
-            contentResolver.takePersistableUriPermission(
-                uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
+            try {
+                contentResolver.takePersistableUriPermission(
+                    uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: Exception) { /* alcuni provider non lo supportano */ }
             val res = RomManager.importRom(this@MainActivity, uri)
             res.onSuccess { refreshRoms(); currentRom = it }
-            res.onFailure { /* TODO: snackbar errore formato */ }
+            res.onFailure { e -> onError(S.errorText(s, e.message)) }
         }
     }
 
@@ -142,6 +202,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun LibraryScreen(
+    s: S,
     roms: List<RomEntry>,
     deviceLabel: String,
     onAdd: () -> Unit,
@@ -151,34 +212,84 @@ private fun LibraryScreen(
         Modifier.fillMaxSize().padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("🎮 RetroFold SP", style = MaterialTheme.typography.headlineMedium)
-        Text(deviceLabel, style = MaterialTheme.typography.bodySmall)
-        Spacer(Modifier.height(4.dp))
         Text(
-            "Piega a 90° per il GBA SP • Aggiungi le tue ROM .gba/.gb/.gbc",
-            style = MaterialTheme.typography.bodyMedium
+            "🎮 RetroFold SP",
+            fontFamily = PixelFont,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.headlineMedium
         )
-        Spacer(Modifier.height(16.dp))
-        Button(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
-            Text("+ Aggiungi ROM (file tuo, nessun gioco incluso)")
+        Text(
+            deviceLabel,
+            fontFamily = PixelFont,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color(0xFF9AA0AA)
+        )
+        Spacer(Modifier.height(12.dp))
+        PixelCard(Modifier.fillMaxWidth()) {
+            Text(
+                s.libHow,
+                fontFamily = PixelFont,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFFFD34D)
+            )
+            Spacer(Modifier.height(6.dp))
+            Text(s.step1, fontFamily = PixelFont, style = MaterialTheme.typography.bodyMedium)
+            Text(s.step2, fontFamily = PixelFont, style = MaterialTheme.typography.bodyMedium)
+            Text(s.step3, fontFamily = PixelFont, style = MaterialTheme.typography.bodyMedium)
         }
+        Spacer(Modifier.height(14.dp))
+        RetroButton(
+            text = s.addRom,
+            onClick = onAdd,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Text(
+            s.addRomHint,
+            fontFamily = PixelFont,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color(0xFF9AA0AA)
+        )
         Spacer(Modifier.height(12.dp))
         if (roms.isEmpty()) {
-            Text("Nessuna ROM. Tocca + e scegli un file .gba dal tuo telefono.")
+            Text(
+                s.emptyLib,
+                fontFamily = PixelFont,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.85f)
+            )
         } else {
+            Text(
+                s.romsTitle,
+                fontFamily = PixelFont,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(6.dp))
             LazyColumn(Modifier.fillMaxWidth()) {
                 items(roms) { rom ->
-                    ElevatedCard(
-                        onClick = { onPlay(rom) },
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    PixelCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 5.dp)
                     ) {
-                        Column(Modifier.padding(12.dp)) {
-                            Text("▶ ${rom.title}")
-                            Text(
-                                "${rom.system} • ${rom.sizeBytes / 1024} KB",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
+                        Text(
+                            "▶ ${rom.title}",
+                            fontFamily = PixelFont,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "${rom.system} • ${rom.sizeBytes / 1024} KB",
+                            fontFamily = PixelFont,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF9AA0AA)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        RetroButton(
+                            text = "▶",
+                            onClick = { onPlay(rom) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }

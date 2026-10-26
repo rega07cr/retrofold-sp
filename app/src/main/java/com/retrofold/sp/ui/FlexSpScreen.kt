@@ -42,7 +42,8 @@ fun FlexSpScreen(
     onToggleFilter: () -> Unit,
     onBack: () -> Unit,
     onSave: (Int) -> Unit,
-    onLoad: (Int) -> Unit
+    onLoad: (Int) -> Unit,
+    s: S = S.it
 ) {
     var showMacro by remember { mutableStateOf(false) }
 
@@ -189,15 +190,15 @@ fun FlexSpScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.size(8.dp).clip(CircleShape).background(skin.ledOn))
                         Spacer(Modifier.width(6.dp))
-                        TextButton(onClick = { showMacro = !showMacro }) { Text("⋯ Macro") }
+                        TextButton(onClick = { showMacro = !showMacro }) { Text("⋯ ${s.macro}") }
                         TextButton(onClick = onToggleFilter) { Text(if (ags101) "LCD:ON" else "LCD:OFF") }
-                        TextButton(onClick = onBack) { Text("⏏") }
+                        TextButton(onClick = onBack) { Text("⏏ ${s.back}") }
                     }
                 }
                 if (showMacro) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        Button(onClick = { onSave(0) }) { Text("💾 Save") }
-                        Button(onClick = { onLoad(0) }) { Text("📂 Load") }
+                        Button(onClick = { onSave(0) }) { Text("💾 ${s.save}") }
+                        Button(onClick = { onLoad(0) }) { Text("📂 ${s.load}") }
                         Button(onClick = {
                             try { engine.nativeRewind(10) } catch (_: Throwable) {}
                         }) { Text("⏪ 10s") }

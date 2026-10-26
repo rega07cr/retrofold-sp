@@ -42,7 +42,11 @@ data class S(
     val openFlex: String,
     val coverWarn: String,
     val noRom: String,
-    val langName: String
+    val langName: String,
+    val crashTitle: String,
+    val crashMsg: String,
+    val share: String,
+    val close: String
 ) {
     companion object {
         val it = S(
@@ -76,7 +80,11 @@ data class S(
             openFlex = "Apri a 90° → Game Boy",
             coverWarn = "Su questo modello la cover usa cover-launcher/Good Lock: segui il wizard al primo avvio.",
             noRom = "Nessuna ROM",
-            langName = "🌍 Lingua"
+            langName = "🌍 Lingua",
+            crashTitle = "L'app si è chiusa da sola",
+            crashMsg = "Ecco cosa è successo. Condividi questo report: serve a sistemare il bug al 100%.",
+            share = "Condividi",
+            close = "Chiudi"
         )
         val en = S(
             splashLoading = "LOADING…",
@@ -109,7 +117,11 @@ data class S(
             openFlex = "Open to 90° → Game Boy",
             coverWarn = "On this model the cover needs a cover-launcher/Good Lock: follow the wizard on first launch.",
             noRom = "No ROM",
-            langName = "🌍 Language"
+            langName = "🌍 Language",
+            crashTitle = "The app crashed",
+            crashMsg = "Here's what happened. Share this report: it fixes the bug for good.",
+            share = "Share",
+            close = "Close"
         )
 
         fun of(lang: AppLang): S = when (lang) {

@@ -13,6 +13,7 @@
 #include <pthread.h>
 #include <atomic>
 #include <cstdlib>
+#include <string>
 #include <cstring>
 #include <ctime>
 #include <vector>
@@ -62,6 +63,8 @@ struct Emu {
     mCore* core = nullptr;
     color_t* pixels = nullptr;
     unsigned vw = 240, vh = 160;
+    std::string markerPath;
+    std::atomic<bool> firstFrameLogged{false};
     pthread_t thread{};
     bool threadOn = false;
     std::atomic<bool> running{false};
@@ -83,7 +86,21 @@ struct Emu {
 
 static Emu g;
 
+// Ultimo stadio raggiunto, su file: se l'app muore senza unload pulito,
+// al riavvio sappiamo DOVE si è piantata (native crash = niente eccezione Java).
+static void markStage(const char* s) {
+    if (g.markerPath.empty()) return;
+    FILE* f = fopen(g.markerPath.c_str(), "w");
+    if (f) {
+        fputs(s, f);
+        fclose(f);
+    }
+}
+
 static void blitLocked() {
+    // Guardia anti-dimensioni assurde: senza, un vw/vh impazzito scrive
+    // fuori dal buffer -> heap corruption -> crash inspiegabile.
+    if (!g.pixels || g.vw < 64 || g.vw > 1024 || g.vh < 64 || g.vh > 1024) return;
     pthread_mutex_lock(&g.winLock);
     ANativeWindow* win = g.window;
     if (win) ANativeWindow_acquire(win);
@@ -148,6 +165,7 @@ static void* emuLoop(void*) {
             g.core->runFrame(g.core);
         }
         drainAudio();
+        if (!g.firstFrameLogged.exchange(true)) markStage("first_frame_ok");
         // snapshot rewind ogni 10 frame
         if (++g.frameNo % 10 == 0 && g.stateSize > 0) {
             if (g.rewind.size() >= 72) {
@@ -223,6 +241,13 @@ static void unloadLocked() {
     }
     if (g.romVf) { g.romVf->close(g.romVf); g.romVf = nullptr; }
     if (g.saveVf) { g.saveVf->close(g.saveVf); g.saveVf = nullptr; }
+    // Uscita pulita: cancella il marker, così al prossimo avvio
+    // un marker residuo significa crash vero durante l'emulazione.
+    if (!g.markerPath.empty()) {
+        std::remove(g.markerPath.c_str());
+        g.markerPath.clear();
+    }
+    g.firstFrameLogged.store(false);
     free(g.pixels);
     g.pixels = nullptr;
     for (auto* s : g.rewind) free(s);
@@ -240,14 +265,18 @@ Java_com_retrofold_sp_core_EmulatorEngine_nativeLoadRom(
     const char* batteryPath = env->GetStringUTFChars(batteryPath_, nullptr);
     pthread_mutex_lock(&g.lock);
     unloadLocked();
+    g.markerPath = std::string(batteryPath) + ".stage";
+    markStage("load_enter");
     bool ok = false;
-    mCore* core = mCoreCreate(platform == 0 ? mPLATFORM_GBA : mPLATFORM_GB);
-    if (core) {
+    mCore* core = mCoreCreate(platform == 0 ? mPLATFORM_GBA : mPLATFORM_GB);        if (core) {
+        markStage("core_created");
         mCoreInitConfig(core, "retrofold");
         mCoreLoadConfig(core);
         if (core->init(core)) {
             unsigned w = 240, h = 160;
             core->desiredVideoDimensions(core, &w, &h);
+            // Sanity: dimensioni folli = crash certo più avanti. Fallback.
+            if (w < 64 || w > 1024 || h < 64 || h > 1024) { w = 240; h = 160; }
             g.vw = w;
             g.vh = h;
             g.pixels = static_cast<color_t*>(malloc((size_t)w * h * sizeof(color_t)));
@@ -257,6 +286,7 @@ Java_com_retrofold_sp_core_EmulatorEngine_nativeLoadRom(
                 VFile* rom = VFileOpen(romPath, O_RDONLY);
                 if (rom) {
                     if (core->loadROM(core, rom)) {
+                        markStage("rom_loaded");
                         g.romVf = rom; // resta aperto per la sessione
                         // Tocca il file prima: VFileOpen non crea file mancanti
                         // in modo affidabile su tutte le piattaforme.
@@ -269,7 +299,9 @@ Java_com_retrofold_sp_core_EmulatorEngine_nativeLoadRom(
                             g.saveVf = save; // resta aperto: le scritture persistono
                         }
                         mRTCGenericSourceInit(&core->rtc, core);
+                        markStage("rtc_ok");
                         core->reset(core);
+                        markStage("ready_waiting_start");
                         g.stateSize = core->stateSize(core);
                         g.core = core;
                         ok = true;
@@ -322,6 +354,7 @@ Java_com_retrofold_sp_core_EmulatorEngine_nativeStart(JNIEnv*, jobject) {
     audioStart();
     if (pthread_create(&g.thread, nullptr, emuLoop, nullptr) == 0) {
         g.threadOn = true;
+        markStage("thread_started");
     } else {
         g.running.store(false);
     }

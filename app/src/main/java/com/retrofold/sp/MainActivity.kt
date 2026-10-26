@@ -1,9 +1,11 @@
 package com.retrofold.sp
 
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
+import java.io.File
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -29,6 +31,7 @@ import com.retrofold.sp.device.DeviceAdapter
 import com.retrofold.sp.ui.AppLang
 import com.retrofold.sp.ui.BootSplash
 import com.retrofold.sp.ui.CoverPocketScreen
+import com.retrofold.sp.ui.CrashReportOverlay
 import com.retrofold.sp.ui.FlexSpScreen
 import com.retrofold.sp.ui.FlipPetOverlay
 import com.retrofold.sp.ui.GameBootScreen
@@ -57,6 +60,8 @@ class MainActivity : ComponentActivity() {
     private var bootRom by mutableStateOf<RomEntry?>(null)
     /** Vero mentre il core gira: serve a onPause/onResume e allo snackbar errori. */
     private var playing by mutableStateOf(false)
+    /** Report crash precedente (Java stacktrace o stage nativo mGBA). */
+    private var crashReport by mutableStateOf<String?>(null)
 
     // Tasti fisici del volume come pulsanti d'azione in Cover Mode.
     // BUGFIX documentato: prima erano solo scritti nei testi ma mai intercettati.
@@ -104,6 +109,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         refreshRoms()
+        collectCrashReport()
 
         // Lingua salvata (null = prima apertura -> schermata scelta)
         lifecycleScope.launch {
@@ -256,6 +262,30 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     FlipPetOverlay(flexOpen = isFlex)
+                    // Report crash precedente: sopra a tutto, finché non lo chiudi/elimini.
+                    val cr = crashReport
+                    if (cr != null) {
+                        CrashReportOverlay(
+                            s = s,
+                            report = cr,
+                            onShare = {
+                                try {
+                                    startActivity(
+                                        Intent.createChooser(
+                                            Intent(Intent.ACTION_SEND).apply {
+                                                type = "text/plain"
+                                                putExtra(Intent.EXTRA_SUBJECT, "RetroFold SP crash report")
+                                                putExtra(Intent.EXTRA_TEXT, cr.take(20000))
+                                            },
+                                            null
+                                        )
+                                    )
+                                } catch (_: Exception) {}
+                            },
+                            onDelete = { clearCrashReport() },
+                            onClose = { crashReport = null }
+                        )
+                    }
                     // Staccata dal bordo: prima si sovrapponeva al FlipPet.
                     SnackbarHost(
                         hostState = snackbar,
@@ -263,6 +293,38 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
+        }
+    }
+
+    /** Legge crash Java + marker di stage nativi rimasti da un crash precedente. */
+    private fun collectCrashReport() {
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val parts = mutableListOf<String>()
+            try {
+                val crash = File(filesDir, RetroFoldApp.CRASH_FILE)
+                if (crash.exists()) parts += "[JAVA]\n" + crash.readText().take(6000)
+            } catch (_: Exception) {}
+            try {
+                val saves = File(filesDir, "saves")
+                saves.listFiles()?.sortedBy { it.name }?.forEach { dir ->
+                    dir.listFiles { f -> f.name.endsWith(".stage") }?.forEach { st ->
+                        parts += "[NATIVE mGBA ultimostadio: ${dir.name}]\n" + st.readText().take(500)
+                    }
+                }
+            } catch (_: Exception) {}
+            if (parts.isNotEmpty()) crashReport = parts.joinToString("\n\n")
+        }
+    }
+
+    private fun clearCrashReport() {
+        lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try { File(filesDir, RetroFoldApp.CRASH_FILE).delete() } catch (_: Exception) {}
+            try {
+                File(filesDir, "saves").listFiles()?.forEach { dir ->
+                    dir.listFiles { f -> f.name.endsWith(".stage") }?.forEach { it.delete() }
+                }
+            } catch (_: Exception) {}
+            crashReport = null
         }
     }
 

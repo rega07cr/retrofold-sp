@@ -16,6 +16,17 @@ class RetroFoldApp : Application() {
         val ROM_KEY = stringPreferencesKey("last_rom_id")
         val FILTER_KEY = stringPreferencesKey("ags101")
         val LANG_KEY = stringPreferencesKey("lang")
+        // Layout gamepad custom: opacità + offset gruppi tasti (dp).
+        val PAD_OPACITY = androidx.datastore.preferences.core.floatPreferencesKey("pad_opacity")
+        val PAD_DPAD_X = androidx.datastore.preferences.core.floatPreferencesKey("pad_dpad_x")
+        val PAD_DPAD_Y = androidx.datastore.preferences.core.floatPreferencesKey("pad_dpad_y")
+        val PAD_AB_X = androidx.datastore.preferences.core.floatPreferencesKey("pad_ab_x")
+        val PAD_AB_Y = androidx.datastore.preferences.core.floatPreferencesKey("pad_ab_y")
+        val PAD_SYS_X = androidx.datastore.preferences.core.floatPreferencesKey("pad_sys_x")
+        val PAD_SYS_Y = androidx.datastore.preferences.core.floatPreferencesKey("pad_sys_y")
+        // Stili nascosti: id separati da virgola + flag nascondi striscia.
+        val HIDDEN_SKINS = stringPreferencesKey("hidden_skins")
+        val HIDE_THUMBS = androidx.datastore.preferences.core.booleanPreferencesKey("hide_thumbs")
         const val CRASH_FILE = "crash_last.txt"
     }
 

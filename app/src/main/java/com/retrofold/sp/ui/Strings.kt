@@ -48,7 +48,18 @@ data class S(
     val crashTitle: String,
     val crashMsg: String,
     val share: String,
-    val close: String
+    val close: String,
+    val customize: String,
+    val done: String,
+    val opacity: String,
+    val resetPos: String,
+    val editHint: String,
+    val hideStyles: String,
+    val showStyles: String,
+    val hideThis: String,
+    val showAll: String,
+    val slot: String,
+    val reset: String
 ) {
     companion object {
         val it = S(
@@ -88,7 +99,18 @@ data class S(
             crashTitle = "L'app si è chiusa da sola",
             crashMsg = "Ecco cosa è successo. Condividi questo report: serve a sistemare il bug al 100%.",
             share = "Condividi",
-            close = "Chiudi"
+            close = "Chiudi",
+            customize = "✎ Tasti",
+            done = "Fine",
+            opacity = "Visibilità tasti",
+            resetPos = "Reset posizioni",
+            editHint = "Trascina D-pad / A-B / START-SELECT dove vuoi. Regola la visibilità.",
+            hideStyles = "Nascondi striscia stili",
+            showStyles = "Mostra striscia stili",
+            hideThis = "Nascondi",
+            showAll = "↺ Mostra tutti gli stili",
+            slot = "Slot",
+            reset = "Reset"
         )
         val en = S(
             splashLoading = "LOADING…",
@@ -127,7 +149,18 @@ data class S(
             crashTitle = "The app crashed",
             crashMsg = "Here's what happened. Share this report: it fixes the bug for good.",
             share = "Share",
-            close = "Close"
+            close = "Close",
+            customize = "✎ Buttons",
+            done = "Done",
+            opacity = "Button visibility",
+            resetPos = "Reset positions",
+            editHint = "Drag D-pad / A-B / START-SELECT anywhere. Adjust visibility.",
+            hideStyles = "Hide style strip",
+            showStyles = "Show style strip",
+            hideThis = "Hide",
+            showAll = "↺ Show all styles",
+            slot = "Slot",
+            reset = "Reset"
         )
 
         fun of(lang: AppLang): S = when (lang) {

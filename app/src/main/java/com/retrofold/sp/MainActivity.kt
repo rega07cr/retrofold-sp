@@ -3,6 +3,7 @@ package com.retrofold.sp
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -30,6 +31,7 @@ import com.retrofold.sp.ui.BootSplash
 import com.retrofold.sp.ui.CoverPocketScreen
 import com.retrofold.sp.ui.FlexSpScreen
 import com.retrofold.sp.ui.FlipPetOverlay
+import com.retrofold.sp.ui.GameBootScreen
 import com.retrofold.sp.ui.LanguageScreen
 import com.retrofold.sp.ui.PixelCard
 import com.retrofold.sp.ui.PixelFont
@@ -51,6 +53,34 @@ class MainActivity : ComponentActivity() {
     private var isFlex by mutableStateOf(false)
     private var booted by mutableStateOf(false)
     private var lang by mutableStateOf<AppLang?>(null)
+    /** Gioco in fase di boot-animazione (rainbow). Null = mostra l'emulatore. */
+    private var bootRom by mutableStateOf<RomEntry?>(null)
+
+    // Tasti fisici del volume come pulsanti d'azione in Cover Mode.
+    // BUGFIX documentato: prima erano solo scritti nei testi ma mai intercettati.
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        val mask = actionMaskFor(keyCode)
+        if (mask != null && currentRom != null && !isFlex && bootRom == null) {
+            try { engine.nativePress(mask) } catch (_: Throwable) {}
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
+        val mask = actionMaskFor(keyCode)
+        if (mask != null && currentRom != null && !isFlex && bootRom == null) {
+            try { engine.nativeRelease(mask) } catch (_: Throwable) {}
+            return true
+        }
+        return super.onKeyUp(keyCode, event)
+    }
+
+    private fun actionMaskFor(keyCode: Int): Int? = when (keyCode) {
+        KeyEvent.KEYCODE_VOLUME_UP -> EmulatorEngine.Keys.A
+        KeyEvent.KEYCODE_VOLUME_DOWN -> EmulatorEngine.Keys.B
+        else -> null
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -118,13 +148,19 @@ class MainActivity : ComponentActivity() {
                 }
 
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-                    if (currentRom == null) {
+                    val br = bootRom
+                    if (br != null) {
+                        // Animazione rainbow all'avvio di ogni gioco
+                        GameBootScreen(romTitle = br.title, s = s) {
+                            if (bootRom?.id == br.id) bootRom = null
+                        }
+                    } else if (currentRom == null) {
                         LibraryScreen(
                             s = s,
                             roms = roms,
                             deviceLabel = "${profile.deviceLabel} • ${Build.MANUFACTURER} ${Build.MODEL}",
                             onAdd = { pickRom.launch(arrayOf("*/*")) },
-                            onPlay = { currentRom = it }
+                            onPlay = { currentRom = it; bootRom = it }
                         )
                     } else if (isFlex) {
                         // MODALITA' FLEX a L: GBA SP Reborn (schermo sopra + gamepad sotto)
@@ -139,7 +175,7 @@ class MainActivity : ComponentActivity() {
                                 ags101 = !ags101
                                 try { engine.nativeSetFilterAGS101(ags101) } catch (_: Throwable) {}
                             },
-                            onBack = { currentRom = null },
+                            onBack = { currentRom = null; bootRom = null },
                             onSave = { slot -> saveSlot(slot) },
                             onLoad = { slot -> loadSlot(slot) },
                             s = s
@@ -149,7 +185,7 @@ class MainActivity : ComponentActivity() {
                         CoverPocketScreen(
                             rom = currentRom,
                             profile = profile,
-                            onBack = { currentRom = null },
+                            onBack = { currentRom = null; bootRom = null },
                             onOpenFlexHint = {},
                             s = s
                         )
@@ -178,7 +214,7 @@ class MainActivity : ComponentActivity() {
                 )
             } catch (_: Exception) { /* alcuni provider non lo supportano */ }
             val res = RomManager.importRom(this@MainActivity, uri)
-            res.onSuccess { refreshRoms(); currentRom = it }
+            res.onSuccess { refreshRoms(); currentRom = it; bootRom = it }
             res.onFailure { e -> onError(S.errorText(s, e.message)) }
         }
     }

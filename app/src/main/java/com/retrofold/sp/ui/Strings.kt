@@ -14,6 +14,7 @@ enum class AppLang(val code: String) {
 data class S(
     val splashLoading: String,
     val splashTapToSkip: String,
+    val startingGame: String,
     val langTitle: String,
     val langSub: String,
     val libHow: String,
@@ -44,6 +45,7 @@ data class S(
         val it = S(
             splashLoading = "CARICAMENTO…",
             splashTapToSkip = "tocca per saltare",
+            startingGame = "AVVIO DEL GIOCO…",
             langTitle = "🌍 Scegli la lingua",
             langSub = "Puoi cambiarla quando vuoi dalle impostazioni",
             libHow = "🎮 Come si gioca:",
@@ -73,6 +75,7 @@ data class S(
         val en = S(
             splashLoading = "LOADING…",
             splashTapToSkip = "tap to skip",
+            startingGame = "STARTING GAME…",
             langTitle = "🌍 Choose language",
             langSub = "You can change it anytime in settings",
             libHow = "🎮 How to play:",

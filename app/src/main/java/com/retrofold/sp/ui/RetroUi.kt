@@ -37,6 +37,8 @@ fun RetroButton(
     corner: Dp = 12.dp
 ) {
     val shape = RoundedCornerShape(corner)
+    // NB: l'ombra è matchParentSize (non misura), il contenuto è regolare
+    // e dà la misura al Box — altrimenti il bottone collassa a 0px.
     Box(modifier) {
         // ombra dura
         Box(
@@ -48,7 +50,6 @@ fun RetroButton(
         )
         Box(
             Modifier
-                .matchParentSize()
                 .clip(shape)
                 .background(bg)
                 .border(3.dp, Color.Black, shape)

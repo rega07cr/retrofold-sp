@@ -1,6 +1,10 @@
 package com.retrofold.sp.ui
 
+import android.view.SurfaceHolder
 import android.view.SurfaceView
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -75,7 +79,17 @@ fun FlexSpScreen(
                 AndroidView(
                     factory = { ctx ->
                         SurfaceView(ctx).apply {
-                            try { engine.nativeSetSurface(holder.surface) } catch (_: Throwable) {}
+                            // BUGFIX: la surface non è pronta nel factory — aspetta il callback,
+                            // altrimenti il core disegna sul nulla (schermo nero).
+                            holder.addCallback(object : SurfaceHolder.Callback {
+                                override fun surfaceCreated(h: SurfaceHolder) {
+                                    try { engine.nativeSetSurface(h.surface) } catch (_: Throwable) {}
+                                }
+                                override fun surfaceChanged(h: SurfaceHolder, f: Int, w: Int, hh: Int) = Unit
+                                override fun surfaceDestroyed(h: SurfaceHolder) {
+                                    try { engine.nativeSetSurface(null) } catch (_: Throwable) {}
+                                }
+                            })
                         }
                     },
                     modifier = Modifier
@@ -149,12 +163,18 @@ fun FlexSpScreen(
             Column(Modifier.fillMaxSize()) {
                 // speaker centrale + L/R
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    KeyCap("L", skin) { press(engine, EmulatorEngine.Keys.L) }
+                    KeyCap("L", skin) { down ->
+                        if (down) press(engine, EmulatorEngine.Keys.L)
+                        else release(engine, EmulatorEngine.Keys.L)
+                    }
                     Box(
                         Modifier.size(14.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.7f)),
                         contentAlignment = Alignment.Center
                     ) { Box(Modifier.size(6.dp).clip(CircleShape).background(Color.DarkGray)) }
-                    KeyCap("R", skin) { press(engine, EmulatorEngine.Keys.R) }
+                    KeyCap("R", skin) { down ->
+                        if (down) press(engine, EmulatorEngine.Keys.R)
+                        else release(engine, EmulatorEngine.Keys.R)
+                    }
                 }
                 Spacer(Modifier.height(10.dp))
                 Row(
@@ -171,8 +191,14 @@ fun FlexSpScreen(
                             color = Color.White.copy(0.9f)
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                            KeyCap("B", skin, big = true) { press(engine, EmulatorEngine.Keys.B) }
-                            KeyCap("A", skin, big = true) { press(engine, EmulatorEngine.Keys.A) }
+                            KeyCap("B", skin, big = true) { down ->
+                                if (down) press(engine, EmulatorEngine.Keys.B)
+                                else release(engine, EmulatorEngine.Keys.B)
+                            }
+                            KeyCap("A", skin, big = true) { down ->
+                                if (down) press(engine, EmulatorEngine.Keys.A)
+                                else release(engine, EmulatorEngine.Keys.A)
+                            }
                         }
                     }
                 }
@@ -183,8 +209,14 @@ fun FlexSpScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        KeyCap("SELECT", skin, small = true) { press(engine, EmulatorEngine.Keys.SELECT) }
-                        KeyCap("START", skin, small = true) { press(engine, EmulatorEngine.Keys.START) }
+                        KeyCap("SELECT", skin, small = true) { down ->
+                            if (down) press(engine, EmulatorEngine.Keys.SELECT)
+                            else release(engine, EmulatorEngine.Keys.SELECT)
+                        }
+                        KeyCap("START", skin, small = true) { down ->
+                            if (down) press(engine, EmulatorEngine.Keys.START)
+                            else release(engine, EmulatorEngine.Keys.START)
+                        }
                     }
                     SpeakerGrille()
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -236,13 +268,30 @@ private fun press(e: EmulatorEngine, m: Int) { try { e.nativePress(m) } catch (_
 private fun release(e: EmulatorEngine, m: Int) { try { e.nativeRelease(m) } catch (_: Throwable) {} }
 
 @Composable
-private fun KeyCap(label: String, skin: GbaSkin, big: Boolean = false, small: Boolean = false, onTap: () -> Unit) {
+private fun KeyCap(
+    label: String,
+    skin: GbaSkin,
+    big: Boolean = false,
+    small: Boolean = false,
+    onPress: (Boolean) -> Unit
+) {
     val size = when { big -> 64.dp; small -> 44.dp; else -> 52.dp }
     Box(
         Modifier.size(size).clip(CircleShape)
             .background(skin.buttons)
             .border(2.dp, Color.Black.copy(0.5f), CircleShape)
-            .clickable { onTap() },
+            // BUGFIX: prima era solo clickable = tasto sempre "giù" (input incastrato).
+            // Ora press alla pressione e release al rilascio, come un tasto vero.
+            .pointerInput(label) {
+                awaitEachGesture {
+                    awaitFirstDown()
+                    onPress(true)
+                    do {
+                        val ev = awaitPointerEvent()
+                    } while (ev.changes.any { it.pressed })
+                    onPress(false)
+                }
+            },
         contentAlignment = Alignment.Center
     ) { Text(label, color = skin.buttonText, fontWeight = FontWeight.Bold) }
 }
@@ -256,21 +305,31 @@ private fun DPad(skin: GbaSkin, onDir: (Int, Boolean) -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            DPadBtn("▲", skin) { onDir(EmulatorEngine.Keys.UP, true) }
+            DPadBtn("▲", skin) { onDir(EmulatorEngine.Keys.UP, it) }
             Row {
-                DPadBtn("◀", skin) { onDir(EmulatorEngine.Keys.LEFT, true) }
+                DPadBtn("◀", skin) { onDir(EmulatorEngine.Keys.LEFT, it) }
                 Spacer(Modifier.size(44.dp))
-                DPadBtn("▶", skin) { onDir(EmulatorEngine.Keys.RIGHT, true) }
+                DPadBtn("▶", skin) { onDir(EmulatorEngine.Keys.RIGHT, it) }
             }
-            DPadBtn("▼", skin) { onDir(EmulatorEngine.Keys.DOWN, true) }
+            DPadBtn("▼", skin) { onDir(EmulatorEngine.Keys.DOWN, it) }
         }
     }
 }
 
 @Composable
-private fun DPadBtn(t: String, skin: GbaSkin, onTap: () -> Unit) {
+private fun DPadBtn(t: String, skin: GbaSkin, onPress: (Boolean) -> Unit) {
     Box(
-        Modifier.size(44.dp).background(skin.dpad).clickable { onTap() },
+        Modifier.size(44.dp).background(skin.dpad)
+            .pointerInput(t) {
+                awaitEachGesture {
+                    awaitFirstDown()
+                    onPress(true)
+                    do {
+                        val ev = awaitPointerEvent()
+                    } while (ev.changes.any { it.pressed })
+                    onPress(false)
+                }
+            },
         contentAlignment = Alignment.Center
     ) { Text(t, color = Color.White) }
 }

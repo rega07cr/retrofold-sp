@@ -160,11 +160,11 @@ footer{color:var(--mut);text-align:center;padding:26px 20px 44px;font-size:13px}
 <details><summary>Da dove vengono i giochi? Devo comprare qualcosa?</summary><p>No: l'app non include alcun gioco. Usa i dump delle tue cartucce (i tuoi file, anche zippati). Senza ROM tue, giochi solo al Pocket Arcade integrato.</p></details>
 <details><summary>Perché all'installazione compare un avviso?</summary><p>L'APK è firmato in debug (gratuito, senza Play Store). Dai “Installa comunque”: il codice è pubblico e ispezionabile su GitHub.</p></details>
 <details><summary>Funziona sul mio Flip non in lista?</summary><p>Sì: il rilevamento piega usa le API standard Android (FoldingFeature). I modelli noti hanno solo profili cover/haptics calibrati, gli altri usano il profilo generico.</p></details>
-<details><summary>Cosa manca ancora?</summary><p>Il core mGBA NDK è stub: l'UI è completa ma l'emulazione vera parte dopo il link del core (vedi README). Poi: rewind grafico, netplay, cloud saves.</p></details>
+<details><summary>Cosa manca ancora?</summary><p>Il core mGBA gira davvero dal v1.5. Poi: rewind grafico, netplay, cloud saves.</p></details>
 </section>
 
 <div class="dl" id="download">
-<div class="ver" style="justify-content:center"><span class="dot"></span> v1.5 • giochi veri • build automatica attiva</div>
+<div class="ver" style="justify-content:center"><span class="dot"></span> v1.5.3 • fix crash avvio • build automatica attiva</div>
 <h2 style="font-size:32px;margin:8px 0">⬇ Download</h2>
 <p style="color:var(--mut)">APK sempre aggiornato all'ultimo commit main.</p>
 <br>
@@ -174,6 +174,9 @@ footer{color:var(--mut);text-align:center;padding:26px 20px 44px;font-size:13px}
 &nbsp;
 <a class="btn btn-ghost" href="https://github.com/rega07cr/retrofold-sp">💻 Sorgenti ZIP</a>
 <div class="log">
+<b>v1.5.3</b> <span>— fix crash avvio gioco: ordine init/config mGBA corretto, auto-rilevamento core, report crash leggibile</span><br>
+<b>v1.5.2</b> <span>— crash reporter con condivisione + stage nativi mGBA</span><br>
+<b>v1.5.1</b> <span>— fix race input nativa, battery save veri, errori chiari, pausa automatica</span><br>
 <b>v1.5</b> <span>— i giochi GIRANO: core mGBA integrato, skin = foto originali, load dopo boot</span><br>
 <b>v1.4</b> <span>— scanline AGS-101 reali sopra il gioco • lingua modificabile in libreria • titoli ROM puliti • FlowRow macro • largeHeap • snackbar anti-petto</span><br>
 <b>v1.3</b> <span>— bugfix bottoni/tasti/surface/volume • boot rainbow all'avvio gioco</span><br>

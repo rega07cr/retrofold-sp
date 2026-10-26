@@ -35,6 +35,9 @@ class RetroFoldApp : Application() {
         val LR_SCALE = androidx.datastore.preferences.core.floatPreferencesKey("lr_scale")
         val LR_DX = androidx.datastore.preferences.core.floatPreferencesKey("lr_dx")
         val LR_DY = androidx.datastore.preferences.core.floatPreferencesKey("lr_dy")
+        val DPAD_SCALE = androidx.datastore.preferences.core.floatPreferencesKey("dpad_scale")
+        val AB_SCALE = androidx.datastore.preferences.core.floatPreferencesKey("ab_scale")
+        val SYS_SCALE = androidx.datastore.preferences.core.floatPreferencesKey("sys_scale")
         const val CRASH_FILE = "crash_last.txt"
     }
 

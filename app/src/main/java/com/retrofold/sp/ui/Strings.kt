@@ -60,7 +60,10 @@ data class S(
     val showAll: String,
     val perGame: String,
     val gameSize: String,
-    val lrSize: String
+    val lrSize: String,
+    val dpadSize: String,
+    val abSize: String,
+    val sysSize: String
 ) {
     companion object {
         val it = S(
@@ -112,7 +115,10 @@ data class S(
             showAll = "↺ Mostra tutti gli stili",
             perGame = "🎮 Ricorda per questo gioco",
             gameSize = "Dimensione schermo",
-            lrSize = "Dimensione L / R"
+            lrSize = "Dimensione L / R",
+            dpadSize = "Dimensione D-pad",
+            abSize = "Dimensione A / B",
+            sysSize = "Dimensione Start / Select"
         )
         val en = S(
             splashLoading = "LOADING…",
@@ -163,7 +169,10 @@ data class S(
             showAll = "↺ Show all styles",
             perGame = "🎮 Remember for this game",
             gameSize = "Game screen size",
-            lrSize = "L / R size"
+            lrSize = "L / R size",
+            dpadSize = "D-pad size",
+            abSize = "A / B size",
+            sysSize = "Start / Select size"
         )
 
         fun of(lang: AppLang): S = when (lang) {

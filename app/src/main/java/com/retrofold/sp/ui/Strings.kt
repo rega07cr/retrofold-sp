@@ -63,7 +63,8 @@ data class S(
     val lrSize: String,
     val dpadSize: String,
     val abSize: String,
-    val sysSize: String
+    val sysSize: String,
+    val resetBtns: String
 ) {
     companion object {
         val it = S(
@@ -108,7 +109,7 @@ data class S(
             done = "Fine",
             opacity = "Visibilità tasti",
             resetPos = "Reset posizioni",
-            editHint = "Trascina D-pad / A-B / START-SELECT dove vuoi. Regola la visibilità.",
+            editHint = "Trascina OGNI tasto col dito dove vuoi (anche L/R). Regola visibilità e dimensioni qui sotto.",
             hideStyles = "Nascondi striscia stili",
             showStyles = "Mostra striscia stili",
             hideThis = "Nascondi",
@@ -118,7 +119,8 @@ data class S(
             lrSize = "Dimensione L / R",
             dpadSize = "Dimensione D-pad",
             abSize = "Dimensione A / B",
-            sysSize = "Dimensione Start / Select"
+            sysSize = "Dimensione Start / Select",
+            resetBtns = "Reset solo tasti"
         )
         val en = S(
             splashLoading = "LOADING…",
@@ -162,7 +164,7 @@ data class S(
             done = "Done",
             opacity = "Button visibility",
             resetPos = "Reset positions",
-            editHint = "Drag D-pad / A-B / START-SELECT anywhere. Adjust visibility.",
+            editHint = "Drag EVERY button with your finger (L/R too). Adjust visibility and sizes below.",
             hideStyles = "Hide style strip",
             showStyles = "Show style strip",
             hideThis = "Hide",
@@ -172,7 +174,8 @@ data class S(
             lrSize = "L / R size",
             dpadSize = "D-pad size",
             abSize = "A / B size",
-            sysSize = "Start / Select size"
+            sysSize = "Start / Select size",
+            resetBtns = "Reset buttons only"
         )
 
         fun of(lang: AppLang): S = when (lang) {

@@ -85,12 +85,24 @@ fun FlexSpScreen(
     var dpadScale by remember { mutableFloatStateOf(1f) }
     var abScale by remember { mutableFloatStateOf(1f) }
     var sysScale by remember { mutableFloatStateOf(1f) }
+    // Offset di OGNI singolo tasto (regolazione fisica col dito).
+    var btnOffs by remember { mutableStateOf(mapOf<String, Offset>()) }
     var perGame by remember { mutableStateOf(false) }
     var hideThumbs by remember { mutableStateOf(false) }
     var hiddenIds by remember { mutableStateOf(setOf<String>()) }
     var loaded by remember { mutableStateOf(false) }
     val gtag = remember(rom.id) { rom.id.take(16) }
     fun gk(name: String) = androidx.datastore.preferences.core.floatPreferencesKey("g_${gtag}_$name")
+    fun bk(k: String, axis: String) = androidx.datastore.preferences.core.floatPreferencesKey("btn_${k}_$axis")
+    fun gbk(k: String, axis: String) = androidx.datastore.preferences.core.floatPreferencesKey("g_${gtag}_b_${k}_$axis")
+    val btnKeys = listOf("up", "down", "left", "right", "a", "b", "start", "select", "l", "r")
+    fun seedBtns(): Map<String, Offset> = mapOf(
+        "up" to dpadOff, "down" to dpadOff, "left" to dpadOff, "right" to dpadOff,
+        "a" to abOff, "b" to abOff,
+        "start" to sysOff, "select" to sysOff,
+        "l" to lrOff, "r" to lrOff
+    )
+    fun moveBtn(k: String, o: Offset) { btnOffs = btnOffs + (k to o) }
 
     LaunchedEffect(Unit) {
         try {
@@ -109,6 +121,27 @@ fun FlexSpScreen(
             perGame = p[RetroFoldApp.PER_GAME] ?: false
             hideThumbs = p[RetroFoldApp.HIDE_THUMBS] ?: false
             hiddenIds = (p[RetroFoldApp.HIDDEN_SKINS] ?: "").split(",").filter { it.isNotBlank() }.toSet()
+            // Migrazione: vecchi offset di gruppo -> singoli tasti; se esistono
+            // offset singoli salvati, quelli vincono.
+            val seed = mapOf(
+                "up" to Offset(p[RetroFoldApp.PAD_DPAD_X] ?: 0f, p[RetroFoldApp.PAD_DPAD_Y] ?: 0f),
+                "down" to Offset(p[RetroFoldApp.PAD_DPAD_X] ?: 0f, p[RetroFoldApp.PAD_DPAD_Y] ?: 0f),
+                "left" to Offset(p[RetroFoldApp.PAD_DPAD_X] ?: 0f, p[RetroFoldApp.PAD_DPAD_Y] ?: 0f),
+                "right" to Offset(p[RetroFoldApp.PAD_DPAD_X] ?: 0f, p[RetroFoldApp.PAD_DPAD_Y] ?: 0f),
+                "a" to Offset(p[RetroFoldApp.PAD_AB_X] ?: 0f, p[RetroFoldApp.PAD_AB_Y] ?: 0f),
+                "b" to Offset(p[RetroFoldApp.PAD_AB_X] ?: 0f, p[RetroFoldApp.PAD_AB_Y] ?: 0f),
+                "start" to Offset(p[RetroFoldApp.PAD_SYS_X] ?: 0f, p[RetroFoldApp.PAD_SYS_Y] ?: 0f),
+                "select" to Offset(p[RetroFoldApp.PAD_SYS_X] ?: 0f, p[RetroFoldApp.PAD_SYS_Y] ?: 0f),
+                "l" to Offset(p[RetroFoldApp.LR_DX] ?: 0f, p[RetroFoldApp.LR_DY] ?: 0f),
+                "r" to Offset(p[RetroFoldApp.LR_DX] ?: 0f, p[RetroFoldApp.LR_DY] ?: 0f)
+            )
+            val m = seed.toMutableMap()
+            var any = false
+            for (k in btnKeys) {
+                val x = p[bk(k, "x")]; val y = p[bk(k, "y")]
+                if (x != null && y != null) { m[k] = Offset(x, y); any = true }
+            }
+            btnOffs = m
         } catch (_: Throwable) {}
         loaded = true
     }
@@ -133,6 +166,13 @@ fun FlexSpScreen(
             p[gk("dps")]?.let { dpadScale = it.coerceIn(0.7f, 1.6f) }
             p[gk("abs")]?.let { abScale = it.coerceIn(0.7f, 1.6f) }
             p[gk("sys")]?.let { sysScale = it.coerceIn(0.7f, 1.6f) }
+            val seed = seedBtns().toMutableMap()
+            var any = false
+            for (k in btnKeys) {
+                val x = p[gbk(k, "x")]; val y = p[gbk(k, "y")]
+                if (x != null && y != null) { seed[k] = Offset(x, y); any = true }
+            }
+            if (any) btnOffs = seed
         } catch (_: Throwable) {}
     }
     fun saveAll() {
@@ -155,6 +195,10 @@ fun FlexSpScreen(
                         it[gk("dps")] = dpadScale
                         it[gk("abs")] = abScale
                         it[gk("sys")] = sysScale
+                        for (k in btnKeys) {
+                            val o = btnOffs[k] ?: Offset.Zero
+                            it[gbk(k, "x")] = o.x; it[gbk(k, "y")] = o.y
+                        }
                     } else {
                         it[RetroFoldApp.PAD_OPACITY] = opacity
                         it[RetroFoldApp.PAD_DPAD_X] = dpadOff.x
@@ -172,12 +216,16 @@ fun FlexSpScreen(
                         it[RetroFoldApp.DPAD_SCALE] = dpadScale
                         it[RetroFoldApp.AB_SCALE] = abScale
                         it[RetroFoldApp.SYS_SCALE] = sysScale
+                        for (k in btnKeys) {
+                            val o = btnOffs[k] ?: Offset.Zero
+                            it[bk(k, "x")] = o.x; it[bk(k, "y")] = o.y
+                        }
                     }
                 }
             } catch (_: Throwable) {}
         }
     }
-    LaunchedEffect(opacity, dpadOff, abOff, sysOff, gameScale, gameOff, lrScale, lrOff, dpadScale, abScale, sysScale, perGame, hideThumbs, hiddenIds) { saveAll() }
+    LaunchedEffect(opacity, dpadOff, abOff, sysOff, gameScale, gameOff, lrScale, lrOff, dpadScale, abScale, sysScale, btnOffs, perGame, hideThumbs, hiddenIds) { saveAll() }
 
     val visibleSkins = remember(skins, hiddenIds) {
         val v = skins.filterNot { hiddenIds.contains(it.id) }
@@ -219,9 +267,11 @@ fun FlexSpScreen(
                 dpadScale = dpadScale, onDpadScale = { dpadScale = it },
                 abScale = abScale, onAbScale = { abScale = it },
                 sysScale = sysScale, onSysScale = { sysScale = it },
+                btnOffs = btnOffs, onBtnMove = ::moveBtn,
                 perGame = perGame, onPerGame = { perGame = it },
                 hideThumbs = hideThumbs, onToggleThumbs = { hideThumbs = !hideThumbs },
-                onResetPos = { dpadOff = Offset.Zero; abOff = Offset.Zero; sysOff = Offset.Zero; gameOff = Offset.Zero; lrOff = Offset.Zero; opacity = 0.55f; gameScale = 0.86f; lrScale = 1f; dpadScale = 1f; abScale = 1f; sysScale = 1f },
+                onResetPos = { dpadOff = Offset.Zero; abOff = Offset.Zero; sysOff = Offset.Zero; gameOff = Offset.Zero; lrOff = Offset.Zero; btnOffs = mapOf(); opacity = 0.55f; gameScale = 0.86f; lrScale = 1f; dpadScale = 1f; abScale = 1f; sysScale = 1f },
+                onResetBtns = { btnOffs = mapOf() },
                 s = s,
                 modifier = Modifier.weight(1f)
             )
@@ -402,6 +452,9 @@ private fun PhotoBottomHalf(
     onAbScale: (Float) -> Unit,
     sysScale: Float,
     onSysScale: (Float) -> Unit,
+    btnOffs: Map<String, Offset>,
+    onBtnMove: (String, Offset) -> Unit,
+    onResetBtns: () -> Unit,
     perGame: Boolean,
     onPerGame: (Boolean) -> Unit,
     hideThumbs: Boolean,
@@ -424,8 +477,7 @@ private fun PhotoBottomHalf(
         OverlayGamepad(
             engine, Modifier.fillMaxSize().padding(10.dp),
             opacity = opacity, editMode = editPad,
-            dpadOff = dpadOff, abOff = abOff, sysOff = sysOff,
-            onDpad = onDpad, onAb = onAb, onSys = onSys,
+            btnOffs = btnOffs, onBtnMove = onBtnMove,
             dpadScale = dpadScale, abScale = abScale, sysScale = sysScale
         )
         Column(
@@ -444,31 +496,16 @@ private fun PhotoBottomHalf(
                     Text(s.perGame, color = Color.White.copy(alpha = 0.9f), style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
                     Switch(checked = perGame, onCheckedChange = onPerGame)
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(s.opacity, color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(120.dp))
-                    Slider(value = opacity, onValueChange = onOpacity, valueRange = 0.25f..1f, modifier = Modifier.weight(1f))
+                TuneRow(s.opacity, opacity, 0.25f..1f, onOpacity)
+                TuneRow(s.gameSize, gameScale, 0.6f..1f, onGameScale)
+                TuneRow(s.lrSize, lrScale, 0.7f..1.6f, onLrScale)
+                TuneRow(s.dpadSize, dpadScale, 0.7f..1.6f, onDpadScale)
+                TuneRow(s.abSize, abScale, 0.7f..1.6f, onAbScale)
+                TuneRow(s.sysSize, sysScale, 0.7f..1.6f, onSysScale)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = onResetBtns) { Text(s.resetBtns) }
+                    OutlinedButton(onClick = onResetPos) { Text(s.resetPos) }
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(s.gameSize, color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(120.dp))
-                    Slider(value = gameScale, onValueChange = onGameScale, valueRange = 0.6f..1f, modifier = Modifier.weight(1f))
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(s.lrSize, color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(120.dp))
-                    Slider(value = lrScale, onValueChange = onLrScale, valueRange = 0.7f..1.6f, modifier = Modifier.weight(1f))
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(s.dpadSize, color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(120.dp))
-                    Slider(value = dpadScale, onValueChange = onDpadScale, valueRange = 0.7f..1.6f, modifier = Modifier.weight(1f))
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(s.abSize, color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(120.dp))
-                    Slider(value = abScale, onValueChange = onAbScale, valueRange = 0.7f..1.6f, modifier = Modifier.weight(1f))
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(s.sysSize, color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(120.dp))
-                    Slider(value = sysScale, onValueChange = onSysScale, valueRange = 0.7f..1.6f, modifier = Modifier.weight(1f))
-                }
-                OutlinedButton(onClick = onResetPos) { Text(s.resetPos) }
             }
             if (showMacro) {
                 MacroPanel(
@@ -482,20 +519,23 @@ private fun PhotoBottomHalf(
                     s = s
                 )
             }
-            DragGroup(lrOff, editPad, onLrOff) {
-                Row(
-                    Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                DragGroup(btnOffs["l"] ?: Offset.Zero, editPad, { onBtnMove("l", it) }) {
                     PhotoKey("L", opacity, scale = lrScale) { down ->
                         if (down) press(engine, EmulatorEngine.Keys.L)
                         else release(engine, EmulatorEngine.Keys.L)
                     }
+                }
+                DragGroup(btnOffs["r"] ?: Offset.Zero, editPad, { onBtnMove("r", it) }) {
                     PhotoKey("R", opacity, scale = lrScale) { down ->
                         if (down) press(engine, EmulatorEngine.Keys.R)
                         else release(engine, EmulatorEngine.Keys.R)
                     }
                 }
+            }
             }
             if (!hideThumbs) SkinThumbs(visibleSkins, skin, onSkin, onHideSkin)
             else TextButton(onClick = onShowAll) { Text(s.showAll) }
@@ -539,45 +579,74 @@ private fun DragGroup(offset: Offset, editable: Boolean, onDrag: (Offset) -> Uni
 /** Gamepad semitrasparente sopra la foto: D-pad + A/B + START/SELECT
  * sempre visibili. In edit mode i 3 gruppi si trascinano dove vuoi
  * e l'opacità si regola dallo slider. */
+/** Riga slider con valore live (es. 120%). */
+@Composable
+private fun TuneRow(label: String, value: Float, range: ClosedFloatingPointRange<Float>, onValue: (Float) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(140.dp))
+        Slider(value = value, onValueChange = onValue, valueRange = range, modifier = Modifier.weight(1f))
+        Text("${(value * 100).roundToInt()}%", color = Color(0xFFFFD34D), style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(48.dp))
+    }
+}
+
+/** Gamepad: OGNI tasto si trascina da solo col dito (edit mode).
+ * Niente più gruppi rigidi: D-pad, A/B, SELECT/START vivono dove li metti. */
 @Composable
 private fun OverlayGamepad(
     engine: EmulatorEngine, modifier: Modifier = Modifier,
     opacity: Float = 0.55f, editMode: Boolean = false,
-    dpadOff: Offset = Offset.Zero, abOff: Offset = Offset.Zero, sysOff: Offset = Offset.Zero,
-    onDpad: (Offset) -> Unit = {}, onAb: (Offset) -> Unit = {}, onSys: (Offset) -> Unit = {},
+    btnOffs: Map<String, Offset> = mapOf(),
+    onBtnMove: (String, Offset) -> Unit = { _, _ -> },
     dpadScale: Float = 1f, abScale: Float = 1f, sysScale: Float = 1f
 ) {
+    fun off(k: String) = btnOffs[k] ?: Offset.Zero
     Row(
         modifier,
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        DragGroup(dpadOff, editMode, onDpad) {
-            OverlayDPad(opacity, enabled = !editMode, scale = dpadScale) { mask, down ->
-                if (down) press(engine, mask) else release(engine, mask)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            DragGroup(off("up"), editMode, { onBtnMove("up", it) }) {
+                OverlayBtn("▲", opacity, enabled = !editMode, scale = dpadScale) { onDirBtn(engine, EmulatorEngine.Keys.UP, it) }
+            }
+            Row {
+                DragGroup(off("left"), editMode, { onBtnMove("left", it) }) {
+                    OverlayBtn("◀", opacity, enabled = !editMode, scale = dpadScale) { onDirBtn(engine, EmulatorEngine.Keys.LEFT, it) }
+                }
+                Spacer(Modifier.size((52 * dpadScale).dp))
+                DragGroup(off("right"), editMode, { onBtnMove("right", it) }) {
+                    OverlayBtn("▶", opacity, enabled = !editMode, scale = dpadScale) { onDirBtn(engine, EmulatorEngine.Keys.RIGHT, it) }
+                }
+            }
+            DragGroup(off("down"), editMode, { onBtnMove("down", it) }) {
+                OverlayBtn("▼", opacity, enabled = !editMode, scale = dpadScale) { onDirBtn(engine, EmulatorEngine.Keys.DOWN, it) }
             }
         }
-        DragGroup(sysOff, editMode, onSys) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            DragGroup(off("select"), editMode, { onBtnMove("select", it) }) {
                 PhotoKey("SELECT", opacity, enabled = !editMode, scale = sysScale) { down ->
                     if (down) press(engine, EmulatorEngine.Keys.SELECT)
                     else release(engine, EmulatorEngine.Keys.SELECT)
                 }
+            }
+            DragGroup(off("start"), editMode, { onBtnMove("start", it) }) {
                 PhotoKey("START", opacity, enabled = !editMode, scale = sysScale) { down ->
                     if (down) press(engine, EmulatorEngine.Keys.START)
                     else release(engine, EmulatorEngine.Keys.START)
                 }
             }
         }
-        DragGroup(abOff, editMode, onAb) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            DragGroup(off("b"), editMode, { onBtnMove("b", it) }) {
                 OverlayBtn("B", opacity, enabled = !editMode, scale = abScale) { down ->
                     if (down) press(engine, EmulatorEngine.Keys.B)
                     else release(engine, EmulatorEngine.Keys.B)
                 }
+            }
+            DragGroup(off("a"), editMode, { onBtnMove("a", it) }) {
                 OverlayBtn("A", opacity, enabled = !editMode, scale = abScale) { down ->
                     if (down) press(engine, EmulatorEngine.Keys.A)
                     else release(engine, EmulatorEngine.Keys.A)
@@ -586,6 +655,8 @@ private fun OverlayGamepad(
         }
     }
 }
+
+private fun onDirBtn(e: EmulatorEngine, m: Int, down: Boolean) { if (down) press(e, m) else release(e, m) }
 
 @Composable
 private fun OverlayDPad(opacity: Float, enabled: Boolean, scale: Float = 1f, onDir: (Int, Boolean) -> Unit) {

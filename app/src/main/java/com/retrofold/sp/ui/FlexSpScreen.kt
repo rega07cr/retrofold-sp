@@ -60,9 +60,9 @@ fun FlexSpScreen(
 
     Column(Modifier.fillMaxSize().background(Color.Black)) {
         if (skin.photoRes != null) {
-            PhotoTopHalf(rom, engine, skin, ags101, onBack, onToggleFilter, showMacro, { showMacro = !showMacro })
+            PhotoTopHalf(rom, engine, skin, ags101, onBack, onToggleFilter, showMacro, { showMacro = !showMacro }, Modifier.weight(1f))
         } else {
-            ProceduralTopHalf(rom, engine, skin, ags101)
+            ProceduralTopHalf(rom, engine, skin, ags101, Modifier.weight(1f))
         }
 
         // Cerniera
@@ -77,7 +77,8 @@ fun FlexSpScreen(
                 showMacro = showMacro,
                 speedLabel = speedLabel,
                 onSpeed = { onToggleSpeed(); speedLabel = engine.fastForward },
-                onSave = onSave, onLoad = onLoad, onSkin = onSkin, s = s
+                onSave = onSave, onLoad = onLoad, onSkin = onSkin, s = s,
+                modifier = Modifier.weight(1f)
             )
         } else {
             ProceduralBottomHalf(
@@ -89,7 +90,8 @@ fun FlexSpScreen(
                 onToggleFilter = onToggleFilter,
                 onBack = onBack,
                 onSave = onSave, onLoad = onLoad, onSkin = onSkin,
-                ags101 = ags101, s = s
+                ags101 = ags101, s = s,
+                modifier = Modifier.weight(1f)
             )
         }
     }
@@ -127,10 +129,11 @@ private fun PhotoTopHalf(
     onBack: () -> Unit,
     onToggleFilter: () -> Unit,
     showMacro: Boolean,
-    onMacro: () -> Unit
+    onMacro: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Box(
-        Modifier.weight(1f).fillMaxWidth().background(Color.Black),
+        modifier.fillMaxWidth().background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
         Image(
@@ -203,10 +206,11 @@ private fun PhotoBottomHalf(
     onSave: (Int) -> Unit,
     onLoad: (Int) -> Unit,
     onSkin: (GbaSkin) -> Unit,
-    s: S
+    s: S,
+    modifier: Modifier = Modifier
 ) {
     Box(
-        Modifier.weight(1f).fillMaxWidth().background(Color.Black),
+        modifier.fillMaxWidth().background(Color.Black),
         contentAlignment = Alignment.Center
     ) {
         Image(
@@ -380,11 +384,11 @@ private fun ProceduralTopHalf(
     rom: RomEntry,
     engine: EmulatorEngine,
     skin: GbaSkin,
-    ags101: Boolean
+    ags101: Boolean,
+    modifier: Modifier = Modifier
 ) {
     Box(
-        Modifier
-            .weight(1f)
+        modifier
             .fillMaxWidth()
             .background(Brush.verticalGradient(listOf(skin.shellTop, skin.shellBottom)))
             .padding(12.dp),
@@ -476,11 +480,11 @@ private fun ProceduralBottomHalf(
     onLoad: (Int) -> Unit,
     onSkin: (GbaSkin) -> Unit,
     ags101: Boolean,
-    s: S
+    s: S,
+    modifier: Modifier = Modifier
 ) {
     Box(
-        Modifier
-            .weight(1f)
+        modifier
             .fillMaxWidth()
             .background(Brush.verticalGradient(listOf(skin.shellTop, skin.shellBottom)))
             .padding(14.dp)

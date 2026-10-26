@@ -13,5 +13,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "RetroFold SP"
-include(":app")
+rootProject.name = 'RetroFold SP'
+include ':app'

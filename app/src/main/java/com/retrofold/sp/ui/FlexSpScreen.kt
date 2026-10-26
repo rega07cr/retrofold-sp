@@ -536,7 +536,6 @@ private fun PhotoBottomHalf(
                     }
                 }
             }
-            }
             if (!hideThumbs) SkinThumbs(visibleSkins, skin, onSkin, onHideSkin)
             else TextButton(onClick = onShowAll) { Text(s.showAll) }
         }

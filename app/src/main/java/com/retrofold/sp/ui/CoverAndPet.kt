@@ -57,13 +57,15 @@ fun CoverPocketScreen(
                     rom?.title ?: "Nessuna ROM",
                     color = Color.White, style = MaterialTheme.typography.titleMedium
                 )
-                Spacer(Modifier.height(8.dp))                    Text("${s.score} $score", color = Color(0xFF7DFF9A))
+                Spacer(Modifier.height(8.dp))
+                Text("${s.score} $score", color = Color(0xFF7DFF9A))
                 Spacer(Modifier.height(8.dp))
                 Text(
                     s.coverHint,
                     color = Color.Gray, style = MaterialTheme.typography.bodySmall
                 )
-                Spacer(Modifier.height(12.dp))                    Button(onClick = { score += 100 }) { Text(s.tapJump) }
+                Spacer(Modifier.height(12.dp))
+                Button(onClick = { score += 100 }) { Text(s.tapJump) }
             }
         }
         Spacer(Modifier.height(8.dp))

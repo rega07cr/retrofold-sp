@@ -23,13 +23,15 @@ jobs:
           java-version: '17'
           cache: gradle
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.9
+
+      - name: Install Android platform + build-tools (runner SDK)
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" "platform-tools"
 
       - name: Build debug APK
         run: gradle :app:assembleDebug --stacktrace
@@ -37,12 +39,12 @@ jobs:
       - name: Rename APK
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/RetroFold-SP-v1.apk
+          cp app/build/outputs/apk/debug/app-debug.apk dist/RetroFold-SP.apk
           ls -lh dist/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: RetroFold-SP-apk
-          path: dist/RetroFold-SP-v1.apk
+          path: dist/RetroFold-SP.apk
           if-no-files-found: error

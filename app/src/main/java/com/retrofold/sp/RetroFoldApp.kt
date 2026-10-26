@@ -27,6 +27,11 @@ class RetroFoldApp : Application() {
         // Stili nascosti: id separati da virgola + flag nascondi striscia.
         val HIDDEN_SKINS = stringPreferencesKey("hidden_skins")
         val HIDE_THUMBS = androidx.datastore.preferences.core.booleanPreferencesKey("hide_thumbs")
+        // Layout per-gioco: se true, pad+schermo salvati per ogni ROM.
+        val PER_GAME = androidx.datastore.preferences.core.booleanPreferencesKey("per_game_layout")
+        val GAME_SCALE = androidx.datastore.preferences.core.floatPreferencesKey("game_scale")
+        val GAME_DX = androidx.datastore.preferences.core.floatPreferencesKey("game_dx")
+        val GAME_DY = androidx.datastore.preferences.core.floatPreferencesKey("game_dy")
         const val CRASH_FILE = "crash_last.txt"
     }
 

@@ -71,15 +71,20 @@ fun FlexSpScreen(
     val onSaveSlot: (Int) -> Unit = { onSave(slot) }
     val onLoadSlot: (Int) -> Unit = { onLoad(slot) }
 
-    // ── Layout custom persistente ──
+    // ── Layout custom: globale + per-gioco ──
     var editPad by remember { mutableStateOf(false) }
     var opacity by remember { mutableFloatStateOf(0.55f) }
     var dpadOff by remember { mutableStateOf(Offset.Zero) }
     var abOff by remember { mutableStateOf(Offset.Zero) }
     var sysOff by remember { mutableStateOf(Offset.Zero) }
+    var gameScale by remember { mutableFloatStateOf(0.86f) }
+    var gameOff by remember { mutableStateOf(Offset.Zero) }
+    var perGame by remember { mutableStateOf(false) }
     var hideThumbs by remember { mutableStateOf(false) }
     var hiddenIds by remember { mutableStateOf(setOf<String>()) }
     var loaded by remember { mutableStateOf(false) }
+    val gtag = remember(rom.id) { rom.id.take(16) }
+    fun gk(name: String) = androidx.datastore.preferences.core.floatPreferencesKey("g_${gtag}_$name")
 
     LaunchedEffect(Unit) {
         try {
@@ -88,31 +93,63 @@ fun FlexSpScreen(
             dpadOff = Offset(p[RetroFoldApp.PAD_DPAD_X] ?: 0f, p[RetroFoldApp.PAD_DPAD_Y] ?: 0f)
             abOff = Offset(p[RetroFoldApp.PAD_AB_X] ?: 0f, p[RetroFoldApp.PAD_AB_Y] ?: 0f)
             sysOff = Offset(p[RetroFoldApp.PAD_SYS_X] ?: 0f, p[RetroFoldApp.PAD_SYS_Y] ?: 0f)
+            gameScale = (p[RetroFoldApp.GAME_SCALE] ?: 0.86f).coerceIn(0.6f, 1f)
+            gameOff = Offset(p[RetroFoldApp.GAME_DX] ?: 0f, p[RetroFoldApp.GAME_DY] ?: 0f)
+            perGame = p[RetroFoldApp.PER_GAME] ?: false
             hideThumbs = p[RetroFoldApp.HIDE_THUMBS] ?: false
             hiddenIds = (p[RetroFoldApp.HIDDEN_SKINS] ?: "").split(",").filter { it.isNotBlank() }.toSet()
         } catch (_: Throwable) {}
         loaded = true
     }
-    fun savePad() {
+    // Quando cambia gioco (o si attiva per-gioco): carica override per-gioco se esiste.
+    LaunchedEffect(rom.id, perGame, loaded) {
+        if (!loaded || !perGame) return@LaunchedEffect
+        try {
+            val p = app.dataStore.data.first()
+            p[gk("op")]?.let { opacity = it.coerceIn(0.25f, 1f) }
+            val dx = p[gk("ddx")]; val dy = p[gk("ddy")]
+            if (dx != null && dy != null) dpadOff = Offset(dx, dy)
+            val ax = p[gk("abx")]; val ay = p[gk("aby")]
+            if (ax != null && ay != null) abOff = Offset(ax, ay)
+            val sx = p[gk("sysx")]; val sy = p[gk("sysy")]
+            if (sx != null && sy != null) sysOff = Offset(sx, sy)
+            p[gk("gsc")]?.let { gameScale = it.coerceIn(0.6f, 1f) }
+            val gx = p[gk("gdx")]; val gy = p[gk("gdy")]
+            if (gx != null && gy != null) gameOff = Offset(gx, gy)
+        } catch (_: Throwable) {}
+    }
+    fun saveAll() {
         if (!loaded) return
         scope.launch {
             try {
                 app.dataStore.edit {
-                    it[RetroFoldApp.PAD_OPACITY] = opacity
-                    it[RetroFoldApp.PAD_DPAD_X] = dpadOff.x
-                    it[RetroFoldApp.PAD_DPAD_Y] = dpadOff.y
-                    it[RetroFoldApp.PAD_AB_X] = abOff.x
-                    it[RetroFoldApp.PAD_AB_Y] = abOff.y
-                    it[RetroFoldApp.PAD_SYS_X] = sysOff.x
-                    it[RetroFoldApp.PAD_SYS_Y] = sysOff.y
+                    it[RetroFoldApp.PER_GAME] = perGame
                     it[RetroFoldApp.HIDE_THUMBS] = hideThumbs
                     it[RetroFoldApp.HIDDEN_SKINS] = hiddenIds.joinToString(",")
+                    if (perGame) {
+                        it[gk("op")] = opacity
+                        it[gk("ddx")] = dpadOff.x; it[gk("ddy")] = dpadOff.y
+                        it[gk("abx")] = abOff.x; it[gk("aby")] = abOff.y
+                        it[gk("sysx")] = sysOff.x; it[gk("sysy")] = sysOff.y
+                        it[gk("gsc")] = gameScale
+                        it[gk("gdx")] = gameOff.x; it[gk("gdy")] = gameOff.y
+                    } else {
+                        it[RetroFoldApp.PAD_OPACITY] = opacity
+                        it[RetroFoldApp.PAD_DPAD_X] = dpadOff.x
+                        it[RetroFoldApp.PAD_DPAD_Y] = dpadOff.y
+                        it[RetroFoldApp.PAD_AB_X] = abOff.x
+                        it[RetroFoldApp.PAD_AB_Y] = abOff.y
+                        it[RetroFoldApp.PAD_SYS_X] = sysOff.x
+                        it[RetroFoldApp.PAD_SYS_Y] = sysOff.y
+                        it[RetroFoldApp.GAME_SCALE] = gameScale
+                        it[RetroFoldApp.GAME_DX] = gameOff.x
+                        it[RetroFoldApp.GAME_DY] = gameOff.y
+                    }
                 }
             } catch (_: Throwable) {}
         }
     }
-    // Auto-salva quando cambia qualcosa (dopo il load iniziale).
-    LaunchedEffect(opacity, dpadOff, abOff, sysOff, hideThumbs, hiddenIds) { savePad() }
+    LaunchedEffect(opacity, dpadOff, abOff, sysOff, gameScale, gameOff, perGame, hideThumbs, hiddenIds) { saveAll() }
 
     val visibleSkins = remember(skins, hiddenIds) {
         val v = skins.filterNot { hiddenIds.contains(it.id) }
@@ -123,9 +160,9 @@ fun FlexSpScreen(
 
     Column(Modifier.fillMaxSize().background(Color.Black)) {
         if (skin.photoRes != null) {
-            PhotoTopHalf(rom, engine, skin, visibleSkins, skins, hiddenIds, onSkin, ::hideSkin, ::showAllSkins, ags101, onBack, onToggleFilter, showMacro, { showMacro = !showMacro }, editPad, { editPad = !editPad }, Modifier.weight(1f))
+            PhotoTopHalf(rom, engine, skin, visibleSkins, skins, hiddenIds, onSkin, ::hideSkin, ::showAllSkins, ags101, onBack, onToggleFilter, showMacro, { showMacro = !showMacro }, editPad, { editPad = !editPad }, gameScale, gameOff, { gameOff = it }, Modifier.weight(1f))
         } else {
-            ProceduralTopHalf(rom, engine, skin, ags101, Modifier.weight(1f))
+            ProceduralTopHalf(rom, engine, skin, ags101, gameScale, Modifier.weight(1f))
         }
 
         // Cerniera
@@ -148,8 +185,10 @@ fun FlexSpScreen(
                 opacity = opacity, onOpacity = { opacity = it },
                 dpadOff = dpadOff, abOff = abOff, sysOff = sysOff,
                 onDpad = { dpadOff = it }, onAb = { abOff = it }, onSys = { sysOff = it },
+                gameScale = gameScale, onGameScale = { gameScale = it },
+                perGame = perGame, onPerGame = { perGame = it },
                 hideThumbs = hideThumbs, onToggleThumbs = { hideThumbs = !hideThumbs },
-                onResetPos = { dpadOff = Offset.Zero; abOff = Offset.Zero; sysOff = Offset.Zero; opacity = 0.55f },
+                onResetPos = { dpadOff = Offset.Zero; abOff = Offset.Zero; sysOff = Offset.Zero; gameOff = Offset.Zero; opacity = 0.55f; gameScale = 0.86f },
                 s = s,
                 modifier = Modifier.weight(1f)
             )
@@ -217,6 +256,9 @@ private fun PhotoTopHalf(
     onMacro: () -> Unit,
     editPad: Boolean,
     onToggleEdit: () -> Unit,
+    gameScale: Float,
+    gameOff: Offset,
+    onGameOff: (Offset) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -230,31 +272,30 @@ private fun PhotoTopHalf(
             contentScale = ContentScale.Crop,
             alignment = Alignment.TopCenter
         )
-        // Schermo gioco BEN CENTRATO: largo 86%, rapporto GBA 3:2,
-        // staccato dal bordo alto del 6% — uguale su ogni foto,
-        // niente più calibrazioni che tagliano il video.
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            val bw = maxWidth * 0.86f
-            Box(
-                Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = maxHeight * 0.06f)
-                    .width(bw)
-                    .aspectRatio(3f / 2f)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(Color.Black)
-                    .border(2.dp, Color(0xFFFFD34D).copy(alpha = 0.7f), RoundedCornerShape(6.dp))
-            ) {
-                EmuView(engine, Modifier.fillMaxSize())
-                if (ags101) {
-                    Canvas(Modifier.fillMaxSize()) {
-                        var y = 0f
-                        while (y < size.height) {
-                            drawLine(
-                                Color.Black.copy(alpha = 0.22f),
-                                Offset(0f, y), Offset(size.width, y), strokeWidth = 1f
-                            )
-                            y += 4f
+        // Schermo gioco centrato e RIDIMENSIONABILE: larghezza = gameScale
+        // (slider 60–100%), rapporto GBA 3:2, in edit mode si trascina.
+        BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            val bw = maxWidth * gameScale
+            DragGroup(gameOff, editPad, onGameOff) {
+                Box(
+                    Modifier
+                        .width(bw)
+                        .aspectRatio(3f / 2f)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.Black)
+                        .border(2.dp, Color(0xFFFFD34D).copy(alpha = 0.7f), RoundedCornerShape(6.dp))
+                ) {
+                    EmuView(engine, Modifier.fillMaxSize())
+                    if (ags101) {
+                        Canvas(Modifier.fillMaxSize()) {
+                            var y = 0f
+                            while (y < size.height) {
+                                drawLine(
+                                    Color.Black.copy(alpha = 0.22f),
+                                    Offset(0f, y), Offset(size.width, y), strokeWidth = 1f
+                                )
+                                y += 4f
+                            }
                         }
                     }
                 }
@@ -316,6 +357,10 @@ private fun PhotoBottomHalf(
     onDpad: (Offset) -> Unit,
     onAb: (Offset) -> Unit,
     onSys: (Offset) -> Unit,
+    gameScale: Float,
+    onGameScale: (Float) -> Unit,
+    perGame: Boolean,
+    onPerGame: (Boolean) -> Unit,
     hideThumbs: Boolean,
     onToggleThumbs: () -> Unit,
     onResetPos: () -> Unit,
@@ -352,8 +397,16 @@ private fun PhotoBottomHalf(
             if (editPad) {
                 Text(s.editHint, color = Color(0xFFFFD34D), style = MaterialTheme.typography.labelSmall)
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(s.perGame, color = Color.White.copy(alpha = 0.9f), style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
+                    Switch(checked = perGame, onCheckedChange = onPerGame)
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(s.opacity, color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(120.dp))
                     Slider(value = opacity, onValueChange = onOpacity, valueRange = 0.25f..1f, modifier = Modifier.weight(1f))
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(s.gameSize, color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(120.dp))
+                    Slider(value = gameScale, onValueChange = onGameScale, valueRange = 0.6f..1f, modifier = Modifier.weight(1f))
                 }
                 OutlinedButton(onClick = onResetPos) { Text(s.resetPos) }
             }
@@ -692,6 +745,7 @@ private fun ProceduralTopHalf(
     engine: EmulatorEngine,
     skin: GbaSkin,
     ags101: Boolean,
+    gameScale: Float = 0.86f,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -703,7 +757,7 @@ private fun ProceduralTopHalf(
     ) {
         Column(
             Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(gameScale.coerceIn(0.6f, 1f))
                 .clip(RoundedCornerShape(8.dp))
                 .background(skin.bezel)
                 .border(2.dp, skin.shellEdge, RoundedCornerShape(8.dp))

@@ -57,7 +57,9 @@ data class S(
     val hideStyles: String,
     val showStyles: String,
     val hideThis: String,
-    val showAll: String
+    val showAll: String,
+    val perGame: String,
+    val gameSize: String
 ) {
     companion object {
         val it = S(
@@ -106,7 +108,9 @@ data class S(
             hideStyles = "Nascondi striscia stili",
             showStyles = "Mostra striscia stili",
             hideThis = "Nascondi",
-            showAll = "↺ Mostra tutti gli stili"
+            showAll = "↺ Mostra tutti gli stili",
+            perGame = "🎮 Ricorda per questo gioco",
+            gameSize = "Dimensione schermo"
         )
         val en = S(
             splashLoading = "LOADING…",
@@ -154,7 +158,9 @@ data class S(
             hideStyles = "Hide style strip",
             showStyles = "Show style strip",
             hideThis = "Hide",
-            showAll = "↺ Show all styles"
+            showAll = "↺ Show all styles",
+            perGame = "🎮 Remember for this game",
+            gameSize = "Game screen size"
         )
 
         fun of(lang: AppLang): S = when (lang) {

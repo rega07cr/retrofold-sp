@@ -30,7 +30,6 @@ import com.retrofold.sp.core.RomManager
 import com.retrofold.sp.device.DeviceAdapter
 import com.retrofold.sp.ui.AppLang
 import com.retrofold.sp.ui.BootSplash
-import com.retrofold.sp.ui.CoverPocketScreen
 import com.retrofold.sp.ui.CrashReportOverlay
 import com.retrofold.sp.ui.FlexSpScreen
 import com.retrofold.sp.ui.FlipPetOverlay
@@ -63,11 +62,12 @@ class MainActivity : ComponentActivity() {
     /** Report crash precedente (Java stacktrace o stage nativo mGBA). */
     private var crashReport by mutableStateOf<String?>(null)
 
-    // Tasti fisici del volume come pulsanti d'azione in Cover Mode.
-    // BUGFIX documentato: prima erano solo scritti nei testi ma mai intercettati.
+    // Tasti fisici del volume come pulsanti d'azione (A/B) mentre giochi,
+    // piegato o no. BUGFIX documentato: prima erano solo scritti nei testi
+    // ma mai intercettati.
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         val mask = actionMaskFor(keyCode)
-        if (mask != null && currentRom != null && !isFlex && bootRom == null) {
+        if (mask != null && currentRom != null && bootRom == null) {
             try { engine.nativePress(mask) } catch (_: Throwable) {}
             return true
         }
@@ -76,7 +76,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
         val mask = actionMaskFor(keyCode)
-        if (mask != null && currentRom != null && !isFlex && bootRom == null) {
+        if (mask != null && currentRom != null && bootRom == null) {
             try { engine.nativeRelease(mask) } catch (_: Throwable) {}
             return true
         }
@@ -227,8 +227,10 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         )
-                    } else if (isFlex) {
-                        // MODALITA' FLEX a L: GBA SP Reborn (schermo sopra + gamepad sotto)
+                    } else {
+                        // GBA SP Reborn SEMPRE mentre giochi: piegato a L oppure
+                        // a telefono aperto (schermo sopra + gamepad sotto).
+                        // Prima serviva per forza il flex a 90°, ora si gioca ovunque.
                         FlexSpScreen(
                             rom = currentRom!!,
                             engine = engine,
@@ -249,15 +251,6 @@ class MainActivity : ComponentActivity() {
                             onBack = { engine.pause(); playing = false; currentRom = null; bootRom = null },
                             onSave = { slot -> saveSlot(slot) },
                             onLoad = { slot -> loadSlot(slot) },
-                            s = s
-                        )
-                    } else {
-                        // Telefono aperto piatto o chiuso: cover pocket + pet
-                        CoverPocketScreen(
-                            rom = currentRom,
-                            profile = profile,
-                            onBack = { engine.pause(); playing = false; currentRom = null; bootRom = null },
-                            onOpenFlexHint = {},
                             s = s
                         )
                     }

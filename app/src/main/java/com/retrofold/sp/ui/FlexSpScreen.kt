@@ -60,7 +60,7 @@ fun FlexSpScreen(
 
     Column(Modifier.fillMaxSize().background(Color.Black)) {
         if (skin.photoRes != null) {
-            PhotoTopHalf(rom, engine, skin, ags101, onBack, onToggleFilter, showMacro, { showMacro = !showMacro }, Modifier.weight(1f))
+            PhotoTopHalf(rom, engine, skin, skins, onSkin, ags101, onBack, onToggleFilter, showMacro, { showMacro = !showMacro }, Modifier.weight(1f))
         } else {
             ProceduralTopHalf(rom, engine, skin, ags101, Modifier.weight(1f))
         }
@@ -125,6 +125,8 @@ private fun PhotoTopHalf(
     rom: RomEntry,
     engine: EmulatorEngine,
     skin: GbaSkin,
+    skins: List<GbaSkin>,
+    onSkin: (GbaSkin) -> Unit,
     ags101: Boolean,
     onBack: () -> Unit,
     onToggleFilter: () -> Unit,
@@ -175,6 +177,7 @@ private fun PhotoTopHalf(
             Modifier.fillMaxWidth().align(Alignment.TopCenter).padding(8.dp),
             horizontalArrangement = Arrangement.End
         ) {
+            SkinDropdown(skins = skins, current = skin, onSkin = onSkin)
             TextButton(onClick = onMacro) {
                 Text("⋯", color = Color.White.copy(alpha = if (showMacro) 1f else 0.7f))
             }
@@ -259,6 +262,32 @@ private fun PhotoBottomHalf(
                     SmallBtn("⏩ ${if (speedLabel == 1) "1x" else "${speedLabel}x"}") { onSpeed() }
                 }
             }
+            // Tasti reali sempre visibili: le zone invisibili sulla foto
+            // dipendono dalle frazioni generiche e su alcune foto non
+            // centrano i tasti veri — questi funzionano SEMPRE (serve
+            // START per iniziare a giocare!). Semitrasparenti per non
+            // coprire troppo la foto.
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                PhotoKey("L") { down ->
+                    if (down) press(engine, EmulatorEngine.Keys.L)
+                    else release(engine, EmulatorEngine.Keys.L)
+                }
+                PhotoKey("SELECT") { down ->
+                    if (down) press(engine, EmulatorEngine.Keys.SELECT)
+                    else release(engine, EmulatorEngine.Keys.SELECT)
+                }
+                PhotoKey("START") { down ->
+                    if (down) press(engine, EmulatorEngine.Keys.START)
+                    else release(engine, EmulatorEngine.Keys.START)
+                }
+                PhotoKey("R") { down ->
+                    if (down) press(engine, EmulatorEngine.Keys.R)
+                    else release(engine, EmulatorEngine.Keys.R)
+                }
+            }
             SkinThumbs(skins, skin, onSkin)
         }
     }
@@ -318,6 +347,63 @@ private fun TouchButtons(modifier: Modifier, onButton: (Int, Boolean) -> Unit) {
                     }
             )
         }
+    }
+}
+
+/** Menu a tendina per lo sfondo/colori del Game Boy: foto originali
+ * + tinte unite (inclusa Mezzanotte relax per non disturbare la vista). */
+@Composable
+private fun SkinDropdown(
+    skins: List<GbaSkin>,
+    current: GbaSkin,
+    onSkin: (GbaSkin) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        TextButton(onClick = { expanded = true }) {
+            Text("🎨", color = Color.White.copy(alpha = 0.9f))
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            skins.forEach { sk ->
+                DropdownMenuItem(
+                    text = { Text((if (sk.id == current.id) "✔ " else "") + sk.label) },
+                    onClick = { onSkin(sk); expanded = false }
+                )
+            }
+        }
+    }
+}
+
+/** Tasto semitrasparente sopra la foto: funziona su QUALSIASI sfondo. */
+@Composable
+private fun PhotoKey(label: String, onPress: (Boolean) -> Unit) {
+    Box(
+        Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color.Black.copy(alpha = 0.55f))
+            .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+            .pointerInput(label) {
+                awaitEachGesture {
+                    awaitFirstDown()
+                    onPress(true)
+                    do {
+                        val ev = awaitPointerEvent()
+                    } while (ev.changes.any { it.pressed })
+                    onPress(false)
+                }
+            }
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            label,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelMedium
+        )
     }
 }
 
@@ -551,6 +637,7 @@ private fun ProceduralBottomHalf(
                     Spacer(Modifier.width(6.dp))
                     TextButton(onClick = onShowMacro) { Text("⋯ ${s.macro}") }
                     TextButton(onClick = onToggleFilter) { Text(if (ags101) "LCD:ON" else "LCD:OFF") }
+                    SkinDropdown(skins = skins, current = skin, onSkin = onSkin)
                     TextButton(onClick = onBack) { Text("⏏ ${s.back}") }
                 }
             }

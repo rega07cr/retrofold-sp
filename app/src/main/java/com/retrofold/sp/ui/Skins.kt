@@ -36,13 +36,16 @@ data class GbaSkin(
     val emuTop: Float = 0.18f,
     val emuBottom: Float = 0.80f,
     val emuMargin: Float = 0.10f,
-    /** Zone touch invisibili: frazioni della metà sotto (0..1). */
+    /** Zone touch invisibili: frazioni della metà sotto (0..1).
+     * BUGFIX: le foto non sono calibrate una per una, quindi le zone sono
+     * VOLUTAMENTE larghe per beccare i tasti veri anche se la foto è
+     * spostata di qualche mm rispetto alle frazioni generiche. */
     val dpadCx: Float = 0.22f,
     val dpadCy: Float = 0.34f,
-    val dpadSize: Float = 0.30f,
+    val dpadSize: Float = 0.38f,
     val abCx: Float = 0.75f,
     val abCy: Float = 0.32f,
-    val abR: Float = 0.095f
+    val abR: Float = 0.115f
 )
 
 object Skins {
@@ -156,6 +159,18 @@ object Skins {
         specialBadge = "CRYSTAL", assetFile = "skins/gbasp5.jpg",
         photoRes = R.drawable.skin_crystal
     )
+    /** Guscio scuro anti-distrazione: niente foto, niente riflessi,
+     * solo schermo + tasti. Per giocare senza che lo sfondo disturbi. */
+    val MIDNIGHT = GbaSkin(
+        id = "midnight", label = "Mezzanotte relax",
+        shellTop = Color(0xFF232838), shellBottom = Color(0xFF0B0D14),
+        shellEdge = Color(0xFF000000), bezel = Color(0xFF050506),
+        screenTint = Color(0xFF101018), screenText = "▶ START GAME",
+        logoColor = Color(0xFF8E96AC),
+        dpad = Color(0xFF2E3444), buttons = Color(0xFF2E3444),
+        buttonText = Color(0xFFDDE3F0),
+        ledOn = Color(0xFFFF2D2D)
+    )
     val MINIMAL_MONO = GbaSkin(
         id = "minimal_mono", label = "Minimal Mono (foto)",
         shellTop = Color.White, shellBottom = Color(0xFFD9D9D9),
@@ -171,7 +186,7 @@ object Skins {
     val ALL = listOf(
         GOLD_ZELDA, GOLD_TRIFORCE, POKEMON_AQUA, FLAME_RED,
         MATTE_BLACK, GRAPHITE_RED, CRYSTAL_MOD, MINIMAL_MONO,
-        PLATINUM, ONYX, COBALT, NES, TRIBAL
+        MIDNIGHT, PLATINUM, ONYX, COBALT, NES, TRIBAL
     )
     fun byId(id: String) = ALL.firstOrNull { it.id == id } ?: GOLD_ZELDA
 }

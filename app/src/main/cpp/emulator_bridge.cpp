@@ -2,7 +2,7 @@
 // BIOS integrato di mGBA: nessuna BIOS esterna richiesta.
 //
 // Threading: un thread emu dedicato chiama runFrame in loop con pacing
-// 59.73fps; video su ANativeWindow (swizzle BGRx->RGBA), audio via AAudio
+// 59.73fps; video su ANativeWindow (XRGB->RGBA), audio via AAudio
 // 48kHz (decimazione 2:1 dal blip a 96kHz), input via setKeys atomico,
 // stati + rewind sotto mutex. I VFile ROM/save restano aperti per sessione.
 
@@ -109,7 +109,11 @@ static void blitLocked() {
     if (!win) return;
     ANativeWindow_Buffer buf;
     if (ANativeWindow_lock(win, &buf, nullptr) == 0) {
-        // Nearest-neighbor + swizzle BGRx(0x00BBGGRR) -> RGBA8888
+        // Nearest-neighbor XRGB8888 (color_t mGBA = 0x00RRGGBB) -> RGBA8888.
+        // BUGFIX: prima R e B erano scambiati (letto come 0x00BBGGRR) e il
+        // gioco mostrava i colori invertiti (rossi diventavano blu e viceversa).
+        // Prova: libretro carica lo stesso buffer SENZA conversioni in
+        // formato XRGB8888 di default (libretro.c: fmt XRGB8888 + upload diretto).
         auto* dst = static_cast<uint32_t*>(buf.bits);
         int32_t bw = buf.stride;
         int32_t bh = buf.height;
@@ -118,9 +122,9 @@ static void blitLocked() {
             for (int32_t x = 0; x < bw; ++x) {
                 unsigned sx = (unsigned)((int64_t)x * g.vw / (bw ? bw : 1));
                 color_t c = g.pixels[sy * g.vw + sx];
-                uint32_t r = c & 0xFFu;
+                uint32_t r = (c >> 16) & 0xFFu;
                 uint32_t gg = (c >> 8) & 0xFFu;
-                uint32_t b = (c >> 16) & 0xFFu;
+                uint32_t b = c & 0xFFu;
                 dst[y * bw + x] = 0xFF000000u | (r << 16) | (gg << 8) | b;
             }
         }

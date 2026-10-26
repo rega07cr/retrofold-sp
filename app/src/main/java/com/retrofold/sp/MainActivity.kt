@@ -307,7 +307,7 @@ class MainActivity : ComponentActivity() {
             // Titoli letti da disco: `roms` (stato Compose) potrebbe non
             // essere ancora caricato quando questo gira in onCreate.
             val titles = try {
-                RomManager.listRoms(this).associate { it.id to it.title }
+                RomManager.listRoms(this@MainActivity).associate { it.id to it.title }
             } catch (_: Exception) { emptyMap() }
             try {
                 val saves = File(filesDir, "saves")

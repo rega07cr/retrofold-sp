@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RetroFold SP — GBA SP Reborn per Flip Phone</title>
+<meta name="description" content="RetroFold SP: trasforma il tuo Motorola Razr, Galaxy Z Flip, Xiaomi MIX Flip in un Game Boy Advance SP. Importa le tue ROM, gioca a 165Hz, 13 skin.">
+<style>
+:root{--gold:#D9A441;--bg:#0B0C10;--card:#16171D;--txt:#f2f2f2;--mut:#9aa0aa;--acc:#FFD34D}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.6}
+.hero{background:radial-gradient(1000px 500px at 50% -10%,#3a2c08,transparent),var(--bg);text-align:center;padding:72px 20px 48px}
+.badge{display:inline-block;background:#1d1e26;border:1px solid #333;padding:6px 14px;border-radius:99px;font-size:13px;color:var(--acc);margin-bottom:18px}
+h1{font-size:clamp(38px,6vw,68px);letter-spacing:-1px}
+h1 span{color:var(--gold)}
+.sub{color:var(--mut);max-width:640px;margin:14px auto 26px;font-size:18px}
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn{padding:14px 26px;border-radius:12px;font-weight:700;text-decoration:none;font-size:16px;display:inline-block}
+.btn-gold{background:linear-gradient(180deg,#F2C75C,#B57E1D);color:#111}
+.btn-ghost{border:1px solid #444;color:#fff;background:#191a21}
+.phones{margin-top:14px;color:var(--mut);font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;max-width:1080px;margin:0 auto;padding:40px 20px}
+.card{background:var(--card);border:1px solid #26272f;border-radius:18px;padding:22px}
+.card h3{margin-bottom:8px}
+.card p{color:var(--mut);font-size:15px}
+.skins{max-width:1080px;margin:0 auto;padding:10px 20px 30px}
+.skin-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.skin{padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px;border:1px solid rgba(255,255,255,.2)}
+.how{max-width:800px;margin:0 auto;padding:20px}
+ol{background:var(--card);border-radius:16px;padding:26px 26px 26px 48px;border:1px solid #26272f}
+li{margin:10px 0}
+code{background:#000;padding:2px 8px;border-radius:6px;color:var(--acc)}
+.dl{background:linear-gradient(180deg,#17181f,#0e0f14);border-top:1px solid #26272f;text-align:center;padding:56px 20px}
+footer{text-align:center;color:var(--mut);padding:26px;font-size:13px}
+.note{max-width:680px;margin:12px auto 0;color:var(--mut);font-size:13px}
+</style>
+</head>
+<body>
+<div class="hero">
+<div class="badge">🎮 Motorola Razr • Galaxy Z Flip • MIX Flip • Find N Flip</div>
+<h1>RetroFold <span>SP</span></h1>
+<p class="sub">La leggendaria conchiglia GBA&nbsp;SP rivive sul tuo Flip. Piega a 90° e gioca, chiudi e continua dalla cover. Importa le tue ROM, 13 skin incluse le tue 8 grafiche, filtro AGS-101, 165Hz su Razr Ultra.</p>
+<div class="cta">
+<a class="btn btn-gold" href="#download">⬇ Scarica il progetto</a>
+<a class="btn btn-ghost" href="https://github.com/" target="_blank" rel="noopener">★ Apri su GitHub</a>
+</div>
+<p class="phones">Flex Mode a L • Cover 1-Hand Arcade • FlipPet cerniera-interattivo • Save/Load/Rewind</p>
+</div>
+
+<div class="grid">
+<div class="card"><h3>📥 ROM tue, legali</h3><p>Tap + → scegli .gba/.gb/.gbc. Validazione header, dedup SHA-256, saves e 4 slot stato per gioco. Nessuna ROM inclusa.</p></div>
+<div class="card"><h3>⚡ Ottimizzato 165Hz</h3><p>Render NDK zero-copy, frame-skip adattivo, pacing 59.73fps GBA, audio low-latency, profilo per device (Razr/Z Flip/MIX/Find).</p></div>
+<div class="card"><h3>🎨 13 skin</h3><p>Gold base + Gold Triforce, Pokémon Aqua, Flame Red, Matte Black, Graphite Red, Crystal Mod, Minimal Mono + 5 storiche.</p></div>
+<div class="card"><h3>� LCD AGS-101</h3><p>Shader GPU scanline + grille micro-pixel on/off. LED verde/rosso da batteria reale, haptics lineari, macro Save/Load.</p></div>
+</div>
+
+<div class="skins">
+<h2>Le tue grafiche incluse</h2>
+<p style="color:var(--mut)">Le 8 immagini sono già in <code>app/src/main/assets/skins/</code> e mappate in <code>Skins.kt</code>.</p>
+<div class="skin-row">
+<span class="skin" style="background:linear-gradient(180deg,#D9A441,#9C6B1A)">Gold base</span>
+<span class="skin" style="background:linear-gradient(180deg,#E0B252,#A2761F)">▲ Gold Triforce</span>
+<span class="skin" style="background:linear-gradient(180deg,#9BDCED,#4FA8C9)">◉ Pokémon Aqua</span>
+<span class="skin" style="background:linear-gradient(180deg,#FF3B3B,#B01212)">Flame Red</span>
+<span class="skin" style="background:linear-gradient(180deg,#232326,#0C0C0E)">Matte Black</span>
+<span class="skin" style="background:linear-gradient(180deg,#C9CCD1,#8E9299)">Graphite Red</span>
+<span class="skin" style="background:linear-gradient(180deg,#BFE8C9,#6FA98A)">Crystal Mod</span>
+<span class="skin" style="background:linear-gradient(180deg,#fff,#D9D9D9);color:#111">Minimal Mono</span>
+</div>
+</div>
+
+<div class="how">
+<h2>Pubblicare su GitHub (2 min)</h2>
+<ol>
+<li>Crea repo <code>retrofold-sp</code> su GitHub.</li>
+<li><code>git init && git add . && git commit -m "RetroFold SP" && git branch -M main && git remote add origin https://github.com/TUO/retrofold-sp.git && git push -u origin main</code></li>
+<li>Settings → Pages → Deploy from branch → <code>main</code> → <code>/site</code> → il sito è online.</li>
+<li>Releases → Draft new release → allega <code>retrofold-sp.zip</code> (sotto) come download.</li>
+</ol>
+</div>
+
+<div class="dl" id="download">
+<h2>⬇ Download</h2>
+<p style="color:var(--mut)">Scarica tutto il progetto Android + sito + grafiche.</p>
+<br>
+<a class="btn btn-gold" href="./retrofold-sp.zip">⬇ retrofold-sp.zip</a>
+&nbsp;
+<a class="btn btn-ghost" href="../README.md">📖 README</a>
+<p class="note">APK: compila in Android Studio → <code>Build → Build APK</code> (serve collegare il core mGBA, vedi README sezione dedicata). Le ROM non sono incluse: usa i tuoi dump.</p>
+</div>
+<footer>RetroFold SP — fan project non affiliato a Nintendo / Motorola / Samsung / Xiaomi / OPPO. GBA è marchio dei rispettivi proprietari.</footer>
+</body>
+</html>

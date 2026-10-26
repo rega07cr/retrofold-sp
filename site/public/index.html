@@ -4,90 +4,141 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RetroFold SP — GBA SP Reborn per Flip Phone</title>
-<meta name="description" content="RetroFold SP: trasforma il tuo Motorola Razr, Galaxy Z Flip, Xiaomi MIX Flip in un Game Boy Advance SP. Importa le tue ROM, gioca a 165Hz, 13 skin.">
+<meta name="description" content="Trasforma Razr, Z Flip, MIX Flip e Find N Flip in un Game Boy Advance SP. ROM tue, 13 skin, filtro AGS-101, 165Hz. Scarica l'APK.">
 <style>
-:root{--gold:#D9A441;--bg:#0B0C10;--card:#16171D;--txt:#f2f2f2;--mut:#9aa0aa;--acc:#FFD34D}
+:root{--gold:#E9B94B;--gold2:#9C6B1A;--bg:#08090d;--card:#12141b;--line:#23262f;--txt:#f4f4f5;--mut:#a2a7b3;--acc:#FFD34D;--green:#2DFF5C}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.6}
-.hero{background:radial-gradient(1000px 500px at 50% -10%,#3a2c08,transparent),var(--bg);text-align:center;padding:72px 20px 48px}
-.badge{display:inline-block;background:#1d1e26;border:1px solid #333;padding:6px 14px;border-radius:99px;font-size:13px;color:var(--acc);margin-bottom:18px}
-h1{font-size:clamp(38px,6vw,68px);letter-spacing:-1px}
+body{background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;line-height:1.6}
+a{color:inherit}
+.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
+.logo{font-weight:800;font-size:20px;letter-spacing:.3px}
+.logo span{color:var(--gold)}
+.nav a.btn{font-size:14px}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:36px;align-items:center;padding:48px 0 30px}
+@media(max-width:880px){.hero{grid-template-columns:1fr}}
+.badge{display:inline-block;background:#1b1c24;border:1px solid #33363f;padding:6px 14px;border-radius:99px;font-size:13px;color:var(--acc);margin-bottom:16px}
+h1{font-size:clamp(40px,6vw,70px);line-height:1.02;letter-spacing:-1.5px}
 h1 span{color:var(--gold)}
-.sub{color:var(--mut);max-width:640px;margin:14px auto 26px;font-size:18px}
-.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.btn{padding:14px 26px;border-radius:12px;font-weight:700;text-decoration:none;font-size:16px;display:inline-block}
-.btn-gold{background:linear-gradient(180deg,#F2C75C,#B57E1D);color:#111}
-.btn-ghost{border:1px solid #444;color:#fff;background:#191a21}
-.phones{margin-top:14px;color:var(--mut);font-size:14px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;max-width:1080px;margin:0 auto;padding:40px 20px}
-.card{background:var(--card);border:1px solid #26272f;border-radius:18px;padding:22px}
-.card h3{margin-bottom:8px}
+.sub{color:var(--mut);font-size:18px;margin:16px 0 24px;max-width:560px}
+.cta{display:flex;gap:12px;flex-wrap:wrap}
+.btn{padding:15px 26px;border-radius:14px;font-weight:800;text-decoration:none;font-size:16px;display:inline-block;border:1px solid transparent}
+.btn-gold{background:linear-gradient(180deg,#F6CE6B,#C08A24);color:#141414}
+.btn-ghost{border-color:#3a3e49;background:#15171e}
+.btn small{display:block;font-weight:600;font-size:12px;opacity:.75}
+.meta{margin-top:16px;color:var(--mut);font-size:13px}
+/* CSS phone mockup */
+.phone{display:flex;flex-direction:column;gap:0;width:min(340px,90%);margin:0 auto;filter:drop-shadow(0 30px 60px rgba(0,0,0,.6))}
+.shell{background:linear-gradient(180deg,#E9B94B,#9C6B1A);border-radius:26px;padding:14px}
+.bezel{background:#0e0e10;border-radius:16px;padding:12px;border:2px solid #5b4413}
+.screen{background:#B9B4D6;border-radius:8px;aspect-ratio:3/2;display:flex;flex-direction:column;justify-content:space-between;padding:10px;color:#222;font-weight:700}
+.screen .row{display:flex;justify-content:space-between;font-size:11px;letter-spacing:1px}
+.screen .mid{text-align:center;font-size:15px}
+.shell h4{text-align:center;color:#fff;letter-spacing:2px;margin-top:8px;font-size:14px}
+.hinge{height:12px;background:linear-gradient(90deg,#6E4A0E,#E9B94B,#6E4A0E);border-radius:6px;margin:6px 10px}
+.pad{background:linear-gradient(180deg,#E9B94B,#9C6B1A);border-radius:26px;padding:16px;display:flex;justify-content:space-between;align-items:center}
+.dpad{width:92px;height:92px;border-radius:50%;background:rgba(0,0,0,.35);display:grid;place-items:center;color:#fff;font-weight:800}
+.ab{display:flex;gap:12px}
+.ab i{width:52px;height:52px;border-radius:50%;background:#33363c;color:#fff;display:grid;place-items:center;font-style:normal;font-weight:800;border:2px solid rgba(0,0,0,.5)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;padding:34px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px}
+.card h3{margin-bottom:8px;font-size:18px}
 .card p{color:var(--mut);font-size:15px}
-.skins{max-width:1080px;margin:0 auto;padding:10px 20px 30px}
-.skin-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
-.skin{padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px;border:1px solid rgba(255,255,255,.2)}
-.how{max-width:800px;margin:0 auto;padding:20px}
-ol{background:var(--card);border-radius:16px;padding:26px 26px 26px 48px;border:1px solid #26272f}
-li{margin:10px 0}
-code{background:#000;padding:2px 8px;border-radius:6px;color:var(--acc)}
-.dl{background:linear-gradient(180deg,#17181f,#0e0f14);border-top:1px solid #26272f;text-align:center;padding:56px 20px}
-footer{text-align:center;color:var(--mut);padding:26px;font-size:13px}
-.note{max-width:680px;margin:12px auto 0;color:var(--mut);font-size:13px}
+h2{secfont:0}
+.section h2{font-size:clamp(26px,4vw,38px);letter-spacing:-.5px;margin:10px 0 6px}
+.section p.lead{color:var(--mut);max-width:700px}
+.gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-top:18px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.tile img{width:100%;height:190px;object-fit:cover;object-position:top;display:block;background:#000}
+.tile div{padding:10px 12px;font-size:13px;font-weight:700}
+.tile small{color:var(--mut);font-weight:600}
+.steps{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px 26px 26px 46px;margin-top:16px}
+.steps li{margin:10px 0}
+code{background:#000;padding:2px 8px;border-radius:6px;color:var(--acc);font-size:13px}
+.dl{background:linear-gradient(180deg,#14161d,#0b0c11);border:1px solid var(--line);border-radius:22px;text-align:center;padding:48px 24px;margin:36px 0}
+.ver{color:var(--green);font-weight:800;font-size:13px;letter-spacing:1px}
+footer{color:var(--mut);text-align:center;padding:26px 20px 40px;font-size:13px}
+.note{max-width:700px;margin:14px auto 0;color:var(--mut);font-size:13px}
+table{width:100%;border-collapse:collapse;margin-top:14px;font-size:14px}
+td,th{border:1px solid var(--line);padding:10px;text-align:left}
+th{background:#171923}
 </style>
 </head>
 <body>
+<div class="wrap">
+<div class="nav"><div class="logo">🎮 RetroFold <span>SP</span></div><a class="btn btn-ghost" href="#download" style="padding:10px 18px">⬇ APK</a></div>
 <div class="hero">
-<div class="badge">🎮 Motorola Razr • Galaxy Z Flip • MIX Flip • Find N Flip</div>
-<h1>RetroFold <span>SP</span></h1>
-<p class="sub">La leggendaria conchiglia GBA&nbsp;SP rivive sul tuo Flip. Piega a 90° e gioca, chiudi e continua dalla cover. Importa le tue ROM, 13 skin incluse le tue 8 grafiche, filtro AGS-101, 165Hz su Razr Ultra.</p>
+<div>
+<div class="badge">Razr • Z Flip • MIX Flip • Find N Flip — Flex a 90° + Cover</div>
+<h1>Il tuo Flip diventa un <span>GBA&nbsp;SP</span>.</h1>
+<p class="sub">Piega a L e gioca con D-pad, A/B, L/R e filtro LCD AGS-101. Chiudi e continua dalla cover con una mano. Importi <b>tu</b> le ROM — nessuna pirateria inclusa.</p>
 <div class="cta">
-<a class="btn btn-gold" href="#download">⬇ Scarica il progetto</a>
-<a class="btn btn-ghost" href="https://github.com/" target="_blank" rel="noopener">★ Apri su GitHub</a>
+<a class="btn btn-gold" href="https://github.com/rega07cr/retrofold-sp/releases/latest/download/RetroFold-SP.apk">⬇ Scarica APK<small>Android 10+ • installazione diretta</small></a>
+<a class="btn btn-ghost" href="https://github.com/rega07cr/retrofold-sp">★ Codice su GitHub</a>
 </div>
-<p class="phones">Flex Mode a L • Cover 1-Hand Arcade • FlipPet cerniera-interattivo • Save/Load/Rewind</p>
+<p class="meta">Build automatica da GitHub Actions su ogni push • debug-signed • vedi <a href="https://github.com/rega07cr/retrofold-sp/releases">Releases</a> per lo storico</p>
+</div>
+<div class="phone" aria-hidden="true">
+<div class="shell"><div class="bezel"><div class="screen"><div class="row"><span>POWER ON</span><span>BATTERY FULL</span></div><div class="mid">▶ START GAME</div><div></div></div></div><h4>GAME BOY ADVANCE SP</h4></div>
+<div class="hinge"></div>
+<div class="shell pad"><div class="dpad">✚</div><div class="ab"><i>B</i><i>A</i></div></div>
+</div>
 </div>
 
 <div class="grid">
-<div class="card"><h3>📥 ROM tue, legali</h3><p>Tap + → scegli .gba/.gb/.gbc. Validazione header, dedup SHA-256, saves e 4 slot stato per gioco. Nessuna ROM inclusa.</p></div>
-<div class="card"><h3>⚡ Ottimizzato 165Hz</h3><p>Render NDK zero-copy, frame-skip adattivo, pacing 59.73fps GBA, audio low-latency, profilo per device (Razr/Z Flip/MIX/Find).</p></div>
-<div class="card"><h3>🎨 13 skin</h3><p>Gold base + Gold Triforce, Pokémon Aqua, Flame Red, Matte Black, Graphite Red, Crystal Mod, Minimal Mono + 5 storiche.</p></div>
-<div class="card"><h3>� LCD AGS-101</h3><p>Shader GPU scanline + grille micro-pixel on/off. LED verde/rosso da batteria reale, haptics lineari, macro Save/Load.</p></div>
+<div class="card"><h3>📥 ROM tue, legali</h3><p>+ Aggiungi ROM → .gba/.gb/.gbc dal telefono. Validazione header, dedup SHA-256, saves + 4 slot stato per gioco.</p></div>
+<div class="card"><h3>⚡ 165Hz + 60fps</h3><p>Render NDK zero-copy, frame-skip adattivo, pacing 59.73fps GBA, audio low-latency, profilo per device.</p></div>
+<div class="card"><h3>👾 FlipPet</h3><p>Il cucciolo pixel saluta quando apri, dorme quando chiudi. Clack meccanico sulla cerniera.</p></div>
+<div class="card"><h3>🖥 LCD AGS-101</h3><p>Shader scanline + micro-pixel on/off, LED batteria reale, haptics lineari, macro Save/Load/Rewind.</p></div>
 </div>
 
-<div class="skins">
-<h2>Le tue grafiche incluse</h2>
-<p style="color:var(--mut)">Le 8 immagini sono già in <code>app/src/main/assets/skins/</code> e mappate in <code>Skins.kt</code>.</p>
-<div class="skin-row">
-<span class="skin" style="background:linear-gradient(180deg,#D9A441,#9C6B1A)">Gold base</span>
-<span class="skin" style="background:linear-gradient(180deg,#E0B252,#A2761F)">▲ Gold Triforce</span>
-<span class="skin" style="background:linear-gradient(180deg,#9BDCED,#4FA8C9)">◉ Pokémon Aqua</span>
-<span class="skin" style="background:linear-gradient(180deg,#FF3B3B,#B01212)">Flame Red</span>
-<span class="skin" style="background:linear-gradient(180deg,#232326,#0C0C0E)">Matte Black</span>
-<span class="skin" style="background:linear-gradient(180deg,#C9CCD1,#8E9299)">Graphite Red</span>
-<span class="skin" style="background:linear-gradient(180deg,#BFE8C9,#6FA98A)">Crystal Mod</span>
-<span class="skin" style="background:linear-gradient(180deg,#fff,#D9D9D9);color:#111">Minimal Mono</span>
+<div class="section">
+<h2>🎨 Le tue 8 grafiche, già dentro</h2>
+<p class="lead">In <code>app/src/main/assets/skins/</code> e mappate in <code>Skins.kt</code> — si cambiano dal picker in Flex Mode.</p>
+<div class="gallery">
+<div class="tile"><img src="skins/gbasp.jpg" alt="Gold base" loading="lazy"><div>Gold base<small><br>hardware di default</small></div></div>
+<div class="tile"><img src="skins/gbasp4.png" alt="Gold Triforce" loading="lazy"><div>Gold Triforce<small><br>PRESS START • LED verde</small></div></div>
+<div class="tile"><img src="skins/gbasp1.jpg" alt="Pokemon Aqua" loading="lazy"><div>Pokémon Aqua<small><br>Squirtle • tasti blu</small></div></div>
+<div class="tile"><img src="skins/gbasp4.jpg" alt="Flame Red" loading="lazy"><div>Flame Red<small><br>#ff3333</small></div></div>
+<div class="tile"><img src="skins/gbasp3.jpg" alt="Matte Black" loading="lazy"><div>Matte Black<small><br>nero opaco</small></div></div>
+<div class="tile"><img src="skins/gbasp2.jpg" alt="Graphite Red" loading="lazy"><div>Graphite Red<small><br>tasti rossi Nintendo</small></div></div>
+<div class="tile"><img src="skins/gbasp5.jpg" alt="Crystal Mod" loading="lazy"><div>Crystal Mod<small><br>trasparente PLAY Mods</small></div></div>
+<div class="tile"><img src="skins/gbasp7.jpg" alt="Minimal Mono" loading="lazy"><div>Minimal Mono<small><br>MINIMAL AI</small></div></div>
 </div>
 </div>
 
-<div class="how">
-<h2>Pubblicare su GitHub (2 min)</h2>
-<ol>
-<li>Crea repo <code>retrofold-sp</code> su GitHub.</li>
-<li><code>git init && git add . && git commit -m "RetroFold SP" && git branch -M main && git remote add origin https://github.com/TUO/retrofold-sp.git && git push -u origin main</code></li>
-<li>Settings → Pages → Deploy from branch → <code>main</code> → <code>/site</code> → il sito è online.</li>
-<li>Releases → Draft new release → allega <code>retrofold-sp.zip</code> (sotto) come download.</li>
+<div class="section">
+<h2>📱 Compatibilità Flip</h2>
+<table><tr><th>Device</th><th>Cover</th><th>Note</th></tr>
+<tr><td>Razr 40/50 Ultra</td><td>3.6" 1056×1066 165Hz</td><td>full-app, il meglio</td></tr>
+<tr><td>Z Flip 5/6</td><td>3.4" 720×748 60Hz</td><td>serve cover-launcher/Good Lock</td></tr>
+<tr><td>MIX Flip</td><td>~4" 1392×1208 120Hz</td><td>full-app</td></tr>
+<tr><td>Find N Flip</td><td>3.26" verticale</td><td>widget/cover-launcher</td></tr></table>
+</div>
+
+<div class="section">
+<h2>🔧 Installazione APK</h2>
+<ol class="steps">
+<li>Scarica <code>RetroFold-SP.apk</code> dal bottone sopra (o da <a href="https://github.com/rega07cr/retrofold-sp/releases">Releases</a>).</li>
+<li>Su Android: consenti “installa app sconosciute” quando chiesto.</li>
+<li>Apri → <b>+ Aggiungi ROM</b> → scegli i tuoi <code>.gba/.gb/.gbc</code>.</li>
+<li>Piega a 90° → GBA SP. Da chiuso → Pocket Arcade (volume SU/GIÙ = salto/sparo).</li>
 </ol>
 </div>
 
 <div class="dl" id="download">
-<h2>⬇ Download</h2>
-<p style="color:var(--mut)">Scarica tutto il progetto Android + sito + grafiche.</p>
+<div class="ver">● BUILD AUTOMATICA ATTIVA</div>
+<h2 style="font-size:32px;margin:8px 0">⬇ Download</h2>
+<p style="color:var(--mut)">APK sempre aggiornato all'ultimo commit main.</p>
 <br>
-<a class="btn btn-gold" href="./retrofold-sp.zip">⬇ retrofold-sp.zip</a>
+<a class="btn btn-gold" href="https://github.com/rega07cr/retrofold-sp/releases/latest/download/RetroFold-SP.apk">⬇ RetroFold-SP.apk</a>
 &nbsp;
-<a class="btn btn-ghost" href="../README.md">📖 README</a>
-<p class="note">APK: compila in Android Studio → <code>Build → Build APK</code> (serve collegare il core mGBA, vedi README sezione dedicata). Le ROM non sono incluse: usa i tuoi dump.</p>
+<a class="btn btn-ghost" href="https://github.com/rega07cr/retrofold-sp/releases">📦 Tutte le release</a>
+&nbsp;
+<a class="btn btn-ghost" href="https://github.com/rega07cr/retrofold-sp">💻 Sorgenti ZIP</a>
+<p class="note">Debug-signed: alla prima installazione dai OK all'avviso Play Protect → “Installa comunque”. Le ROM non sono incluse: usa i tuoi dump. Fan project non affiliato a Nintendo/Motorola/Samsung/Xiaomi/OPPO.</p>
 </div>
-<footer>RetroFold SP — fan project non affiliato a Nintendo / Motorola / Samsung / Xiaomi / OPPO. GBA è marchio dei rispettivi proprietari.</footer>
+</div>
+<footer>RetroFold SP • <a href="https://github.com/rega07cr/retrofold-sp">github.com/rega07cr/retrofold-sp</a> • GBA è marchio dei rispettivi proprietari</footer>
 </body>
 </html>

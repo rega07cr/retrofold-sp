@@ -30,6 +30,7 @@ import com.retrofold.sp.core.RomManager
 import com.retrofold.sp.device.DeviceAdapter
 import com.retrofold.sp.ui.AppLang
 import com.retrofold.sp.ui.BootSplash
+import com.retrofold.sp.ui.CoverPocketScreen
 import com.retrofold.sp.ui.CrashReportOverlay
 import com.retrofold.sp.ui.FlexSpScreen
 import com.retrofold.sp.ui.FlipPetOverlay
@@ -227,8 +228,18 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         )
+                    } else if (!profile.fullAppOnCover) {
+                        // Cover minuscole (Z Flip / OPPO): l'app intera non ci sta,
+                        // resta il pocket arcade invece di un Game Boy illeggibile.
+                        CoverPocketScreen(
+                            rom = currentRom,
+                            profile = profile,
+                            onBack = { engine.pause(); playing = false; currentRom = null; bootRom = null },
+                            onOpenFlexHint = {},
+                            s = s
+                        )
                     } else {
-                        // GBA SP Reborn SEMPRE mentre giochi: piegato a L oppure
+                        // GBA SP Reborn mentre giochi: piegato a L oppure
                         // a telefono aperto (schermo sopra + gamepad sotto).
                         // Prima serviva per forza il flex a 90°, ora si gioca ovunque.
                         FlexSpScreen(

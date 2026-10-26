@@ -110,22 +110,39 @@ static void blitLocked() {
     ANativeWindow_Buffer buf;
     if (ANativeWindow_lock(win, &buf, nullptr) == 0) {
         // Nearest-neighbor XRGB8888 (color_t mGBA = 0x00RRGGBB) -> RGBA8888.
-        // BUGFIX: prima R e B erano scambiati (letto come 0x00BBGGRR) e il
-        // gioco mostrava i colori invertiti (rossi diventavano blu e viceversa).
-        // Prova: libretro carica lo stesso buffer SENZA conversioni in
-        // formato XRGB8888 di default (libretro.c: fmt XRGB8888 + upload diretto).
+        // Stessa matematica colori di prima (R/B gia' corretti in v1.5.4),
+        // ma senza divisioni a 64 bit per pixel: prima ~2M di divisioni
+        // per frame su schermi grandi = frame crollati. Ora fixed-point
+        // 16.16 + fast path memcpy quando le dimensioni coincidono.
         auto* dst = static_cast<uint32_t*>(buf.bits);
         int32_t bw = buf.stride;
         int32_t bh = buf.height;
-        for (int32_t y = 0; y < bh; ++y) {
-            unsigned sy = (unsigned)((int64_t)y * g.vh / (bh ? bh : 1));
-            for (int32_t x = 0; x < bw; ++x) {
-                unsigned sx = (unsigned)((int64_t)x * g.vw / (bw ? bw : 1));
-                color_t c = g.pixels[sy * g.vw + sx];
-                uint32_t r = (c >> 16) & 0xFFu;
-                uint32_t gg = (c >> 8) & 0xFFu;
-                uint32_t b = c & 0xFFu;
-                dst[y * bw + x] = 0xFF000000u | (r << 16) | (gg << 8) | b;
+        if ((unsigned)bw == g.vw && (unsigned)bh == g.vh) {
+            size_t n = (size_t)g.vw * g.vh;
+            for (size_t i = 0; i < n; ++i) {
+                uint32_t c = g.pixels[i];
+                dst[i] = 0xFF000000u | (((c >> 16) & 0xFFu) << 16)
+                    | ((c >> 8) & 0xFFu) << 8 | (c & 0xFFu);
+            }
+        } else {
+            uint32_t xStep = ((uint32_t)g.vw << 16) / (uint32_t)(bw ? bw : 1);
+            uint32_t yStep = ((uint32_t)g.vh << 16) / (uint32_t)(bh ? bh : 1);
+            uint32_t syAcc = 0;
+            for (int32_t y = 0; y < bh; ++y) {
+                unsigned sy = syAcc >> 16;
+                if (sy >= g.vh) sy = g.vh - 1;
+                syAcc += yStep;
+                color_t* src = g.pixels + (size_t)sy * g.vw;
+                uint32_t* row = dst + (size_t)y * bw;
+                uint32_t sxAcc = 0;
+                for (int32_t x = 0; x < bw; ++x) {
+                    unsigned sx = sxAcc >> 16;
+                    if (sx >= g.vw) sx = g.vw - 1;
+                    sxAcc += xStep;
+                    uint32_t c = src[sx];
+                    row[x] = 0xFF000000u | (((c >> 16) & 0xFFu) << 16)
+                        | ((c >> 8) & 0xFFu) << 8 | (c & 0xFFu);
+                }
             }
         }
         ANativeWindow_unlockAndPost(win);
@@ -332,6 +349,16 @@ Java_com_retrofold_sp_core_EmulatorEngine_nativeLoadRom(
                         g.stateSize = core->stateSize(core);
                         g.core = core;
                         ok = true;
+                        // La surface puo' essere arrivata PRIMA della ROM (con
+                        // vw/vh ancora 0): in quel caso la geometry non era stata
+                        // impostata. Reimpostala ora che le dimensioni sono note.
+                        pthread_mutex_lock(&g.winLock);
+                        if (g.window) {
+                            ANativeWindow_setBuffersGeometry(
+                                g.window, (int32_t)g.vw, (int32_t)g.vh,
+                                WINDOW_FORMAT_RGBA_8888);
+                        }
+                        pthread_mutex_unlock(&g.winLock);
                     } else {
                         rom->close(rom);
                     }

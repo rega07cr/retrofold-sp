@@ -33,10 +33,10 @@ import com.retrofold.sp.core.EmulatorEngine
 import com.retrofold.sp.core.RomEntry
 
 /**
- * FlexSpScreen — telefono piegato a L.
- * Se la skin ha una foto originale (photoRes), le due metà mostrano
- * la foto vera dell'utente con emulatore e tasti sovrapposti nelle
- * posizioni giuste; altrimenti guscio procedurale.
+ * FlexSpScreen — schermo sopra + gamepad sotto (piegato a L o aperto).
+ * Foto: la foto resta come sfondo, ma i comandi sono un gamepad
+ * semitrasparente SEMPRE visibile (non dipende dalla calibrazione della
+ * foto); guscio procedurale altrimenti.
  */
 @Composable
 fun FlexSpScreen(
@@ -57,6 +57,11 @@ fun FlexSpScreen(
     // Copia locale osservabile: engine.fastForward è un campo semplice,
     // leggerlo qui dentro non ricomporrebbe la label ⏩ dopo il toggle.
     var speedLabel by remember { mutableIntStateOf(engine.fastForward) }
+    // Slot di salvataggio selezionato (prima solo lo slot 0, gli altri
+    // esistevano nel codice ma erano irraggiungibili dalla UI).
+    var slot by remember { mutableIntStateOf(0) }
+    val onSaveSlot: (Int) -> Unit = { onSave(slot) }
+    val onLoadSlot: (Int) -> Unit = { onLoad(slot) }
 
     Column(Modifier.fillMaxSize().background(Color.Black)) {
         if (skin.photoRes != null) {
@@ -76,8 +81,10 @@ fun FlexSpScreen(
                 engine, skin, skins,
                 showMacro = showMacro,
                 speedLabel = speedLabel,
+                slot = slot,
+                onSlot = { slot = it },
                 onSpeed = { onToggleSpeed(); speedLabel = engine.fastForward },
-                onSave = onSave, onLoad = onLoad, onSkin = onSkin, s = s,
+                onSave = onSaveSlot, onLoad = onLoadSlot, onSkin = onSkin, s = s,
                 modifier = Modifier.weight(1f)
             )
         } else {
@@ -86,10 +93,12 @@ fun FlexSpScreen(
                 showMacro = showMacro,
                 onShowMacro = { showMacro = !showMacro },
                 speedLabel = speedLabel,
+                slot = slot,
+                onSlot = { slot = it },
                 onSpeed = { onToggleSpeed(); speedLabel = engine.fastForward },
                 onToggleFilter = onToggleFilter,
                 onBack = onBack,
-                onSave = onSave, onLoad = onLoad, onSkin = onSkin,
+                onSave = onSaveSlot, onLoad = onLoadSlot, onSkin = onSkin,
                 ags101 = ags101, s = s,
                 modifier = Modifier.weight(1f)
             )
@@ -107,7 +116,12 @@ private fun EmuView(engine: EmulatorEngine, modifier: Modifier = Modifier) {
                     override fun surfaceCreated(h: SurfaceHolder) {
                         try { engine.nativeSetSurface(h.surface) } catch (_: Throwable) {}
                     }
-                    override fun surfaceChanged(h: SurfaceHolder, f: Int, w: Int, hh: Int) = Unit
+                    // Reimposta geometry+window anche al resize (rotazione,
+                    // multi-window): prima veniva ignorato e il video restava
+                    // stirato/vuoto finché la surface non veniva ricreata.
+                    override fun surfaceChanged(h: SurfaceHolder, f: Int, w: Int, hh: Int) {
+                        try { engine.nativeSetSurface(h.surface) } catch (_: Throwable) {}
+                    }
                     override fun surfaceDestroyed(h: SurfaceHolder) {
                         try { engine.nativeSetSurface(null) } catch (_: Throwable) {}
                     }
@@ -205,6 +219,8 @@ private fun PhotoBottomHalf(
     skins: List<GbaSkin>,
     showMacro: Boolean,
     speedLabel: Int,
+    slot: Int,
+    onSlot: (Int) -> Unit,
     onSpeed: () -> Unit,
     onSave: (Int) -> Unit,
     onLoad: (Int) -> Unit,
@@ -223,27 +239,10 @@ private fun PhotoBottomHalf(
             contentScale = ContentScale.Crop,
             alignment = Alignment.BottomCenter
         )
-        // Zone touch invisibili sopra i tasti della foto.
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            val w = maxWidth
-            val h = maxHeight
-            TouchPad(
-                modifier = Modifier
-                    .offset(x = w * (skin.dpadCx - skin.dpadSize / 2f), y = h * (skin.dpadCy - skin.dpadSize / 2f))
-                    .size(w * skin.dpadSize),
-                onDir = { mask, down ->
-                    if (down) press(engine, mask) else release(engine, mask)
-                }
-            )
-            TouchButtons(
-                modifier = Modifier
-                    .offset(x = w * (skin.abCx - skin.abR * 2.4f), y = h * (skin.abCy - skin.abR))
-                    .size(width = w * skin.abR * 4.8f, height = w * skin.abR * 2f),
-                onButton = { mask, down ->
-                    if (down) press(engine, mask) else release(engine, mask)
-                }
-            )
-        }
+        // Gamepad SEMPRE visibile sopra la foto: le vecchie zone invisibili
+        // dipendevano da frazioni generiche e su molte foto mancavano i
+        // tasti veri. Ora la foto fa da sfondo e i comandi funzionano ovunque.
+        OverlayGamepad(engine, Modifier.fillMaxSize().padding(10.dp))
         // Pannello macro + picker skin in basso.
         Column(
             Modifier.fillMaxWidth().align(Alignment.BottomCenter)
@@ -251,22 +250,19 @@ private fun PhotoBottomHalf(
                 .padding(6.dp)
         ) {
             if (showMacro) {
-                @OptIn(ExperimentalLayoutApi::class)
-                FlowRow(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    SmallBtn("💾 ${s.save}") { onSave(0) }
-                    SmallBtn("📂 ${s.load}") { onLoad(0) }
-                    SmallBtn("⏩ ${if (speedLabel == 1) "1x" else "${speedLabel}x"}") { onSpeed() }
-                }
+                MacroPanel(
+                    engine = engine,
+                    speedLabel = speedLabel,
+                    slot = slot,
+                    onSlot = onSlot,
+                    onSpeed = onSpeed,
+                    onSave = onSave,
+                    onLoad = onLoad,
+                    s = s
+                )
             }
-            // Tasti reali sempre visibili: le zone invisibili sulla foto
-            // dipendono dalle frazioni generiche e su alcune foto non
-            // centrano i tasti veri — questi funzionano SEMPRE (serve
-            // START per iniziare a giocare!). Semitrasparenti per non
-            // coprire troppo la foto.
+            // L/R sempre a portata: prima esistevano solo come zone
+            // invisibili legate alla foto (spesso mancate).
             Row(
                 Modifier.fillMaxWidth().padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -274,14 +270,6 @@ private fun PhotoBottomHalf(
                 PhotoKey("L") { down ->
                     if (down) press(engine, EmulatorEngine.Keys.L)
                     else release(engine, EmulatorEngine.Keys.L)
-                }
-                PhotoKey("SELECT") { down ->
-                    if (down) press(engine, EmulatorEngine.Keys.SELECT)
-                    else release(engine, EmulatorEngine.Keys.SELECT)
-                }
-                PhotoKey("START") { down ->
-                    if (down) press(engine, EmulatorEngine.Keys.START)
-                    else release(engine, EmulatorEngine.Keys.START)
                 }
                 PhotoKey("R") { down ->
                     if (down) press(engine, EmulatorEngine.Keys.R)
@@ -293,59 +281,121 @@ private fun PhotoBottomHalf(
     }
 }
 
-/** Zona D-pad invisibile: divide il riquadro in 4 direzioni. */
+/** Gamepad semitrasparente sopra la foto: D-pad + A/B + START/SELECT
+ * sempre visibili e funzionanti su QUALSIASI sfondo. La foto resta
+ * visibile dietro (alpha 0.55) ma i comandi non dipendono più da dove
+ * cadono i tasti veri nella foto. */
 @Composable
-private fun TouchPad(modifier: Modifier, onDir: (Int, Boolean) -> Unit) {
-    BoxWithConstraints(modifier) {
-        val w = maxWidth
-        val h = maxHeight
-        data class Z(val fx: Float, val fy: Float, val m: Int)
-        val zones = listOf(
-            Z(0.33f, 0f, EmulatorEngine.Keys.UP),
-            Z(0f, 0.33f, EmulatorEngine.Keys.LEFT),
-            Z(0.66f, 0.33f, EmulatorEngine.Keys.RIGHT),
-            Z(0.33f, 0.66f, EmulatorEngine.Keys.DOWN)
-        )
-        zones.forEach { z ->
-            Box(
-                Modifier
-                    .offset(x = w * z.fx, y = h * z.fy)
-                    .size(w * 0.34f, h * 0.34f)
-                    .pointerInput(z.m) {
-                        awaitEachGesture {
-                            awaitFirstDown()
-                            onDir(z.m, true)
-                            do {
-                                val ev = awaitPointerEvent()
-                            } while (ev.changes.any { it.pressed })
-                            onDir(z.m, false)
-                        }
-                    }
-            )
+private fun OverlayGamepad(engine: EmulatorEngine, modifier: Modifier = Modifier) {
+    Row(
+        modifier,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        OverlayDPad { mask, down ->
+            if (down) press(engine, mask) else release(engine, mask)
+        }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            PhotoKey("SELECT") { down ->
+                if (down) press(engine, EmulatorEngine.Keys.SELECT)
+                else release(engine, EmulatorEngine.Keys.SELECT)
+            }
+            PhotoKey("START") { down ->
+                if (down) press(engine, EmulatorEngine.Keys.START)
+                else release(engine, EmulatorEngine.Keys.START)
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OverlayBtn("B") { down ->
+                if (down) press(engine, EmulatorEngine.Keys.B)
+                else release(engine, EmulatorEngine.Keys.B)
+            }
+            OverlayBtn("A") { down ->
+                if (down) press(engine, EmulatorEngine.Keys.A)
+                else release(engine, EmulatorEngine.Keys.A)
+            }
         }
     }
 }
 
-/** Zone A/B invisibili sopra i tasti della foto. */
 @Composable
-private fun TouchButtons(modifier: Modifier, onButton: (Int, Boolean) -> Unit) {
-    Row(modifier, horizontalArrangement = Arrangement.SpaceEvenly) {
-        listOf(EmulatorEngine.Keys.B, EmulatorEngine.Keys.A).forEach { mask ->
-            Box(
-                Modifier
-                    .weight(1f)
-                    .aspectRatio(1f)
-                    .pointerInput(mask) {
-                        awaitEachGesture {
-                            awaitFirstDown()
-                            onButton(mask, true)
-                            do {
-                                val ev = awaitPointerEvent()
-                            } while (ev.changes.any { it.pressed })
-                            onButton(mask, false)
-                        }
-                    }
-            )
+private fun OverlayDPad(onDir: (Int, Boolean) -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        OverlayBtn("▲") { onDir(EmulatorEngine.Keys.UP, it) }
+        Row {
+            OverlayBtn("◀") { onDir(EmulatorEngine.Keys.LEFT, it) }
+            Spacer(Modifier.size(52.dp))
+            OverlayBtn("▶") { onDir(EmulatorEngine.Keys.RIGHT, it) }
+        }
+        OverlayBtn("▼") { onDir(EmulatorEngine.Keys.DOWN, it) }
+    }
+}
+
+@Composable
+private fun OverlayBtn(label: String, onPress: (Boolean) -> Unit) {
+    Box(
+        Modifier.size(52.dp).clip(CircleShape)
+            .background(Color.Black.copy(alpha = 0.55f))
+            .border(2.dp, Color.White.copy(alpha = 0.45f), CircleShape)
+            .pointerInput(label) {
+                awaitEachGesture {
+                    awaitFirstDown()
+                    onPress(true)
+                    do {
+                        val ev = awaitPointerEvent()
+                    } while (ev.changes.any { it.pressed })
+                    onPress(false)
+                }
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = Color.White, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Pannello macro completo: save/load sullo slot scelto, rewind, speed, reset.
+ * Prima save/load usavano solo lo slot 0 e rewind/reset esistevano solo
+ * in una delle due metà — ora identico ovunque. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MacroPanel(
+    engine: EmulatorEngine,
+    speedLabel: Int,
+    slot: Int,
+    onSlot: (Int) -> Unit,
+    onSpeed: () -> Unit,
+    onSave: (Int) -> Unit,
+    onLoad: (Int) -> Unit,
+    s: S
+) {
+    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        FlowRow(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            SmallBtn("💾 ${s.save}") { onSave(slot) }
+            SmallBtn("📂 ${s.load}") { onLoad(slot) }
+            SmallBtn("⏩ ${if (speedLabel == 1) "1x" else "${speedLabel}x"}") { onSpeed() }
+            SmallBtn("⏪ 10s") { try { engine.nativeRewind(10) } catch (_: Throwable) {} }
+            SmallBtn("🔄 ${s.reset}") { try { engine.nativeReset() } catch (_: Throwable) {} }
+        }
+        Spacer(Modifier.height(4.dp))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(s.slot, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelMedium)
+            (0..3).forEach { i ->
+                FilterChip(
+                    selected = slot == i,
+                    onClick = { onSlot(i) },
+                    label = { Text("$i") }
+                )
+            }
         }
     }
 }
@@ -559,6 +609,8 @@ private fun ProceduralBottomHalf(
     showMacro: Boolean,
     onShowMacro: () -> Unit,
     speedLabel: Int,
+    slot: Int,
+    onSlot: (Int) -> Unit,
     onSpeed: () -> Unit,
     onToggleFilter: () -> Unit,
     onBack: () -> Unit,
@@ -642,21 +694,16 @@ private fun ProceduralBottomHalf(
                 }
             }
             if (showMacro) {
-                @OptIn(ExperimentalLayoutApi::class)
-                FlowRow(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Button(onClick = { onSave(0) }) { Text("💾 ${s.save}") }
-                    Button(onClick = { onLoad(0) }) { Text("📂 ${s.load}") }
-                    Button(onClick = {
-                        try { engine.nativeRewind(10) } catch (_: Throwable) {}
-                    }) { Text("⏪ 10s") }
-                    Button(onClick = onSpeed) {
-                        Text(if (speedLabel == 1) "⏩ 1x" else "⏩ ${speedLabel}x")
-                    }
-                }
+                MacroPanel(
+                    engine = engine,
+                    speedLabel = speedLabel,
+                    slot = slot,
+                    onSlot = onSlot,
+                    onSpeed = onSpeed,
+                    onSave = onSave,
+                    onLoad = onLoad,
+                    s = s
+                )
             }
             SkinThumbs(skins, skin, onSkin)
         }

@@ -150,9 +150,31 @@ class MainActivity : ComponentActivity() {
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                     val br = bootRom
                     if (br != null) {
-                        // Animazione rainbow all'avvio di ogni gioco
+                        // Animazione rainbow all'avvio di ogni gioco;
+                        // alla fine carica davvero la ROM nel core mGBA e parte.
                         GameBootScreen(romTitle = br.title, s = s) {
-                            if (bootRom?.id == br.id) bootRom = null
+                            if (bootRom?.id == br.id) {
+                                bootRom = null
+                                lifecycleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                    val r = currentRom
+                                    if (r != null && r.id == br.id) {
+                                        try {
+                                            val platform =
+                                                if (r.system == com.retrofold.sp.core.RomSystem.GBA) 0 else 1
+                                            val ok = engine.nativeLoadRom(
+                                                r.internalPath,
+                                                platform,
+                                                RomManager.batterySave(this@MainActivity, r.id).absolutePath
+                                            )
+                                            if (ok) {
+                                                EmulatorEngine.nativeAvailable = true
+                                                engine.nativeStart()
+                                                engine.nativeResume()
+                                            }
+                                        } catch (_: Throwable) {}
+                                    }
+                                }
+                            }
                         }
                     } else if (currentRom == null) {
                         LibraryScreen(
@@ -190,7 +212,7 @@ class MainActivity : ComponentActivity() {
                                 engine.fastForward = if (engine.fastForward == 1) 2 else 1
                                 try { engine.nativeSetFastForward(engine.fastForward) } catch (_: Throwable) {}
                             },
-                            onBack = { currentRom = null; bootRom = null },
+                            onBack = { engine.pause(); currentRom = null; bootRom = null },
                             onSave = { slot -> saveSlot(slot) },
                             onLoad = { slot -> loadSlot(slot) },
                             s = s
@@ -200,7 +222,7 @@ class MainActivity : ComponentActivity() {
                         CoverPocketScreen(
                             rom = currentRom,
                             profile = profile,
-                            onBack = { currentRom = null; bootRom = null },
+                            onBack = { engine.pause(); currentRom = null; bootRom = null },
                             onOpenFlexHint = {},
                             s = s
                         )

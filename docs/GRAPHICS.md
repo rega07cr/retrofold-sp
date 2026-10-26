@@ -1,10 +1,11 @@
 # 🎨 Grafiche RetroFold SP — come usare le tue 8 immagini
 
-Le hai in `C:\Users\regaj\Pictures\gba\`. Copiale così nel progetto:
+Le foto originali vivono in `app/src/main/res/drawable-nodpi/`
+(uguali al 100% perché SONO le tue foto, mostrate come sfondo in Flex Mode):
 
 ```
-app/src/main/assets/skins/
-  gbasp.jpg      -> Gold base (già default)
+app/src/main/res/drawable-nodpi/
+  skin_gold.jpg      -> Gold base (già default)
   gbasp1.jpg     -> Pokemon Aqua (azzurro + Squirtle)
   gbasp2.jpg     -> Graphite Red (grigio + tasti rossi Nintendo)
   gbasp3.jpg     -> Matte Black (nero opaco)

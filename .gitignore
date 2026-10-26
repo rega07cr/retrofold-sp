@@ -1,2 +1,5 @@
 
 dist/
+
+# mGBA scaricato in CI / via tools/fetch-mgba.sh, non committare
+app/src/main/cpp/mgba/

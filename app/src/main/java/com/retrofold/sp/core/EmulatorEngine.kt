@@ -25,8 +25,8 @@ class EmulatorEngine {
     var fastForward: Int = 1        // 1, 2, 4
     var frameSkip: Int = 0          // 0..2 auto
 
-    // --- NDK bindings (implementati in cpp/emulator_bridge.cpp) ---
-    external fun nativeLoadRom(fd: Int, batteryPath: String): Boolean
+    // --- NDK bindings (implementati in cpp/emulator_bridge.cpp, core mGBA) ---
+    external fun nativeLoadRom(romPath: String, platform: Int, batteryPath: String): Boolean
     external fun nativeSetSurface(surface: Surface?)
     external fun nativeStart()
     external fun nativePause()

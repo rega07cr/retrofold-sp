@@ -304,11 +304,21 @@ class MainActivity : ComponentActivity() {
                 val crash = File(filesDir, RetroFoldApp.CRASH_FILE)
                 if (crash.exists()) parts += "[JAVA]\n" + crash.readText().take(6000)
             } catch (_: Exception) {}
+            // Titoli letti da disco: `roms` (stato Compose) potrebbe non
+            // essere ancora caricato quando questo gira in onCreate.
+            val titles = try {
+                RomManager.listRoms(this).associate { it.id to it.title }
+            } catch (_: Exception) { emptyMap() }
             try {
                 val saves = File(filesDir, "saves")
                 saves.listFiles()?.sortedBy { it.name }?.forEach { dir ->
                     dir.listFiles { f -> f.name.endsWith(".stage") }?.forEach { st ->
-                        parts += "[NATIVE mGBA ultimostadio: ${dir.name}]\n" + st.readText().take(500)
+                        // Mostra il titolo del gioco, non l'hash: l'hash intero
+                        // confonde (sembra un dump esadecimale di crash).
+                        val stage = st.readText().trim().take(120).ifEmpty { "(vuoto)" }
+                        val title = titles[dir.name]
+                            ?: "gioco ${dir.name.take(8)}"
+                        parts += "[NATIVE mGBA — $title]\nstadio: $stage"
                     }
                 }
             } catch (_: Exception) {}

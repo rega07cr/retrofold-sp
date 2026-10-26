@@ -20,6 +20,7 @@
 
 #include <fcntl.h>
 #include <mgba/core/core.h>
+#include <mgba/core/config.h>
 #include <mgba/core/serialize.h>
 #include <mgba/core/blip_buf.h>
 #include <mgba/internal/gba/input.h>
@@ -268,11 +269,33 @@ Java_com_retrofold_sp_core_EmulatorEngine_nativeLoadRom(
     g.markerPath = std::string(batteryPath) + ".stage";
     markStage("load_enter");
     bool ok = false;
-    mCore* core = mCoreCreate(platform == 0 ? mPLATFORM_GBA : mPLATFORM_GB);        if (core) {
+    // Auto-rilevamento del core dal contenuto (sicuro contro mismatch
+    // estensione/contenuto, es. .gbc rinominato .gb): prima mCoreFind,
+    // fallback a mCoreCreate con la platform passata da Kotlin.
+    mCore* core = mCoreFind(romPath);
+    if (!core) {
+        core = mCoreCreate(platform == 0 ? mPLATFORM_GBA : mPLATFORM_GB);
+    }
+    if (core) {
         markStage("core_created");
-        mCoreInitConfig(core, "retrofold");
-        mCoreLoadConfig(core);
-        if (core->init(core)) {
+        // Ordine corretto come SDL/libretro: InitConfig -> init ->
+        // defaults -> LoadConfig. La versione precedente chiamava
+        // LoadConfig PRIMA di init, applicando opzioni a un core non
+        // inizializzato: crash nativo proprio qui (stage core_created).
+        mCoreInitConfig(core, NULL);
+        if (!core->init(core)) {
+            // init fallita: non chiamare deinit su un core parzialmente
+            // inizializzato (rischio crash); il leak di pochi KB e' preferibile.
+            core = nullptr;
+        }
+        if (core) {
+            struct mCoreOptions defaults = {
+                .useBios = true,
+                .volume = 0x100,
+            };
+            mCoreConfigLoadDefaults(&core->config, &defaults);
+            mCoreLoadConfig(core);
+            markStage("core_inited");
             unsigned w = 240, h = 160;
             core->desiredVideoDimensions(core, &w, &h);
             // Sanity: dimensioni folli = crash certo più avanti. Fallback.

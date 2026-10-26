@@ -37,7 +37,6 @@ jobs:
         run: |
           set -x
           rm -rf app/src/main/cpp/mgba /tmp/mgba.tgz /tmp/mgba-0.10.5
-          mkdir -p app/src/main/cpp/mgba
           curl -fSL --retry 3 -o /tmp/mgba.tgz https://github.com/mgba-emu/mgba/archive/refs/tags/0.10.5.tar.gz
           ls -lh /tmp/mgba.tgz
           tar -xzf /tmp/mgba.tgz -C /tmp

@@ -9,7 +9,6 @@ if [ -f "$DST/CMakeLists.txt" ]; then
   exit 0
 fi
 rm -rf "$DST"
-mkdir -p "$DST"
 curl -sL -o /tmp/mgba.tgz "https://github.com/mgba-emu/mgba/archive/refs/tags/$VER.tar.gz"
 tar -xzf /tmp/mgba.tgz -C /tmp
 mv "/tmp/mgba-$VER" "$DST"

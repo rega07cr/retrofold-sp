@@ -13,8 +13,8 @@ android {
         applicationId 'com.retrofold.sp'
         minSdk 30
         targetSdk 35
-        versionCode 17
-        versionName '1.5.7'
+        versionCode 18
+        versionName '1.5.8'
 
         ndk {
             // ARMv8 + alta performance per core GBA (mGBA-style, NEON)

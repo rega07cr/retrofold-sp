@@ -31,6 +31,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.datastore.preferences.core.edit
 import com.retrofold.sp.RetroFoldApp
@@ -79,6 +80,8 @@ fun FlexSpScreen(
     var sysOff by remember { mutableStateOf(Offset.Zero) }
     var gameScale by remember { mutableFloatStateOf(0.86f) }
     var gameOff by remember { mutableStateOf(Offset.Zero) }
+    var lrScale by remember { mutableFloatStateOf(1f) }
+    var lrOff by remember { mutableStateOf(Offset.Zero) }
     var perGame by remember { mutableStateOf(false) }
     var hideThumbs by remember { mutableStateOf(false) }
     var hiddenIds by remember { mutableStateOf(setOf<String>()) }
@@ -95,6 +98,8 @@ fun FlexSpScreen(
             sysOff = Offset(p[RetroFoldApp.PAD_SYS_X] ?: 0f, p[RetroFoldApp.PAD_SYS_Y] ?: 0f)
             gameScale = (p[RetroFoldApp.GAME_SCALE] ?: 0.86f).coerceIn(0.6f, 1f)
             gameOff = Offset(p[RetroFoldApp.GAME_DX] ?: 0f, p[RetroFoldApp.GAME_DY] ?: 0f)
+            lrScale = (p[RetroFoldApp.LR_SCALE] ?: 1f).coerceIn(0.7f, 1.6f)
+            lrOff = Offset(p[RetroFoldApp.LR_DX] ?: 0f, p[RetroFoldApp.LR_DY] ?: 0f)
             perGame = p[RetroFoldApp.PER_GAME] ?: false
             hideThumbs = p[RetroFoldApp.HIDE_THUMBS] ?: false
             hiddenIds = (p[RetroFoldApp.HIDDEN_SKINS] ?: "").split(",").filter { it.isNotBlank() }.toSet()
@@ -116,6 +121,9 @@ fun FlexSpScreen(
             p[gk("gsc")]?.let { gameScale = it.coerceIn(0.6f, 1f) }
             val gx = p[gk("gdx")]; val gy = p[gk("gdy")]
             if (gx != null && gy != null) gameOff = Offset(gx, gy)
+            p[gk("lrs")]?.let { lrScale = it.coerceIn(0.7f, 1.6f) }
+            val lx = p[gk("ldx")]; val ly = p[gk("ldy")]
+            if (lx != null && ly != null) lrOff = Offset(lx, ly)
         } catch (_: Throwable) {}
     }
     fun saveAll() {
@@ -133,6 +141,8 @@ fun FlexSpScreen(
                         it[gk("sysx")] = sysOff.x; it[gk("sysy")] = sysOff.y
                         it[gk("gsc")] = gameScale
                         it[gk("gdx")] = gameOff.x; it[gk("gdy")] = gameOff.y
+                        it[gk("lrs")] = lrScale
+                        it[gk("ldx")] = lrOff.x; it[gk("ldy")] = lrOff.y
                     } else {
                         it[RetroFoldApp.PAD_OPACITY] = opacity
                         it[RetroFoldApp.PAD_DPAD_X] = dpadOff.x
@@ -144,12 +154,15 @@ fun FlexSpScreen(
                         it[RetroFoldApp.GAME_SCALE] = gameScale
                         it[RetroFoldApp.GAME_DX] = gameOff.x
                         it[RetroFoldApp.GAME_DY] = gameOff.y
+                        it[RetroFoldApp.LR_SCALE] = lrScale
+                        it[RetroFoldApp.LR_DX] = lrOff.x
+                        it[RetroFoldApp.LR_DY] = lrOff.y
                     }
                 }
             } catch (_: Throwable) {}
         }
     }
-    LaunchedEffect(opacity, dpadOff, abOff, sysOff, gameScale, gameOff, perGame, hideThumbs, hiddenIds) { saveAll() }
+    LaunchedEffect(opacity, dpadOff, abOff, sysOff, gameScale, gameOff, lrScale, lrOff, perGame, hideThumbs, hiddenIds) { saveAll() }
 
     val visibleSkins = remember(skins, hiddenIds) {
         val v = skins.filterNot { hiddenIds.contains(it.id) }
@@ -186,9 +199,11 @@ fun FlexSpScreen(
                 dpadOff = dpadOff, abOff = abOff, sysOff = sysOff,
                 onDpad = { dpadOff = it }, onAb = { abOff = it }, onSys = { sysOff = it },
                 gameScale = gameScale, onGameScale = { gameScale = it },
+                lrScale = lrScale, onLrScale = { lrScale = it },
+                lrOff = lrOff, onLrOff = { lrOff = it },
                 perGame = perGame, onPerGame = { perGame = it },
                 hideThumbs = hideThumbs, onToggleThumbs = { hideThumbs = !hideThumbs },
-                onResetPos = { dpadOff = Offset.Zero; abOff = Offset.Zero; sysOff = Offset.Zero; gameOff = Offset.Zero; opacity = 0.55f; gameScale = 0.86f },
+                onResetPos = { dpadOff = Offset.Zero; abOff = Offset.Zero; sysOff = Offset.Zero; gameOff = Offset.Zero; lrOff = Offset.Zero; opacity = 0.55f; gameScale = 0.86f; lrScale = 1f },
                 s = s,
                 modifier = Modifier.weight(1f)
             )
@@ -359,6 +374,10 @@ private fun PhotoBottomHalf(
     onSys: (Offset) -> Unit,
     gameScale: Float,
     onGameScale: (Float) -> Unit,
+    lrScale: Float,
+    onLrScale: (Float) -> Unit,
+    lrOff: Offset,
+    onLrOff: (Offset) -> Unit,
     perGame: Boolean,
     onPerGame: (Boolean) -> Unit,
     hideThumbs: Boolean,
@@ -408,6 +427,10 @@ private fun PhotoBottomHalf(
                     Text(s.gameSize, color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(120.dp))
                     Slider(value = gameScale, onValueChange = onGameScale, valueRange = 0.6f..1f, modifier = Modifier.weight(1f))
                 }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(s.lrSize, color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(120.dp))
+                    Slider(value = lrScale, onValueChange = onLrScale, valueRange = 0.7f..1.6f, modifier = Modifier.weight(1f))
+                }
                 OutlinedButton(onClick = onResetPos) { Text(s.resetPos) }
             }
             if (showMacro) {
@@ -422,17 +445,19 @@ private fun PhotoBottomHalf(
                     s = s
                 )
             }
-            Row(
-                Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                PhotoKey("L", opacity) { down ->
-                    if (down) press(engine, EmulatorEngine.Keys.L)
-                    else release(engine, EmulatorEngine.Keys.L)
-                }
-                PhotoKey("R", opacity) { down ->
-                    if (down) press(engine, EmulatorEngine.Keys.R)
-                    else release(engine, EmulatorEngine.Keys.R)
+            DragGroup(lrOff, editPad, onLrOff) {
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    PhotoKey("L", opacity, scale = lrScale) { down ->
+                        if (down) press(engine, EmulatorEngine.Keys.L)
+                        else release(engine, EmulatorEngine.Keys.L)
+                    }
+                    PhotoKey("R", opacity, scale = lrScale) { down ->
+                        if (down) press(engine, EmulatorEngine.Keys.R)
+                        else release(engine, EmulatorEngine.Keys.R)
+                    }
                 }
             }
             if (!hideThumbs) SkinThumbs(visibleSkins, skin, onSkin, onHideSkin)
@@ -643,9 +668,9 @@ private fun SkinDropdown(
     }
 }
 
-/** Tasto semitrasparente sopra la foto: opacità regolabile. */
+/** Tasto semitrasparente sopra la foto: opacità + dimensione regolabili. */
 @Composable
-private fun PhotoKey(label: String, opacity: Float = 0.55f, enabled: Boolean = true, onPress: (Boolean) -> Unit) {
+private fun PhotoKey(label: String, opacity: Float = 0.55f, enabled: Boolean = true, scale: Float = 1f, onPress: (Boolean) -> Unit) {
     Box(
         Modifier
             .clip(RoundedCornerShape(8.dp))
@@ -662,14 +687,15 @@ private fun PhotoKey(label: String, opacity: Float = 0.55f, enabled: Boolean = t
                     onPress(false)
                 }
             }
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = (12 * scale).dp, vertical = (8 * scale).dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             label,
             color = Color.White.copy(alpha = 0.4f + 0.6f * opacity),
             fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.labelMedium
+            style = MaterialTheme.typography.labelMedium,
+            fontSize = (13 * scale).sp
         )
     }
 }

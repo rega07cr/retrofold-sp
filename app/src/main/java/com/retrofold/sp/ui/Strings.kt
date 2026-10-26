@@ -59,7 +59,8 @@ data class S(
     val hideThis: String,
     val showAll: String,
     val perGame: String,
-    val gameSize: String
+    val gameSize: String,
+    val lrSize: String
 ) {
     companion object {
         val it = S(
@@ -110,7 +111,8 @@ data class S(
             hideThis = "Nascondi",
             showAll = "↺ Mostra tutti gli stili",
             perGame = "🎮 Ricorda per questo gioco",
-            gameSize = "Dimensione schermo"
+            gameSize = "Dimensione schermo",
+            lrSize = "Dimensione L / R"
         )
         val en = S(
             splashLoading = "LOADING…",
@@ -160,7 +162,8 @@ data class S(
             hideThis = "Hide",
             showAll = "↺ Show all styles",
             perGame = "🎮 Remember for this game",
-            gameSize = "Game screen size"
+            gameSize = "Game screen size",
+            lrSize = "L / R size"
         )
 
         fun of(lang: AppLang): S = when (lang) {

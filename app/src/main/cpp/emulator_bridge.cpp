@@ -19,6 +19,7 @@
 
 #include <fcntl.h>
 #include <mgba/core/core.h>
+#include <mgba/core/serialize.h>
 #include <mgba/core/blip_buf.h>
 #include <mgba/internal/gba/input.h>
 #include <mgba-util/vfs.h>
